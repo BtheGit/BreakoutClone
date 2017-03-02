@@ -45,19 +45,28 @@ const ballColor = "red";
 
 const brickWidth = 75;
 const brickHeight = 20;
+const brickHealth = 1;
 const brickColor = "green";
 
-const brickRowCount = 3;
-const brickColumnCount = 7;
-const brickPadding = 10;
-const brickOffsetTop = 30;
-const brickOffsetLeft = 30;
 const bricksArray = [];
 
 let canvas = document.getElementById("gameCanvas");
 canvas.width = canvasWidth;
 canvas.height = canvasHeight;
 let ctx = canvas.getContext("2d");
+
+const level1 = {
+	board:[
+		1,1,1,1,1,1,1,
+		1,1,1,1,1,1,1,
+		1,1,1,1,1,1,1
+	],
+	rowCount: 3,
+	columnCount: 7,
+	padding: 10,
+	offsetTop: 30,
+	offsetLeft: 30
+}
 
 //#### CLASS DEFINITIONS ####
 class Rect {
@@ -77,9 +86,29 @@ class Rect {
 		ctx.closePath();
 	}	
 
-	render() {
-		this.drawFillRect(this.x, this.y, this.width, this.height, this.color)
+	// render() {
+	// 	this.drawFillRect(this.x, this.y, this.width, this.height, this.color)
+	// }
+}
+
+class Brick extends Rect {
+	constructor(health = 1, x = 0, y = 0, width = 100, height = 20, color = "purple") {
+		super(x, y, width, height, color);
+		this.health = health;
 	}
+
+	takeDamage(damage = 1) {
+		this.health -= damage;
+	}
+
+	render() {
+		if(this.health > 0) {
+			this.drawFillRect(this.x, this.y, this.width, this.height, this.color)
+		}
+	}
+	//functions for destroying brick
+
+	//later functions for brick health count and color change
 }
 
 class Paddle extends Rect {
@@ -103,19 +132,10 @@ class Paddle extends Rect {
 		}
 	}
 
-}
-
-class Brick extends Rect {
-	constructor(health = 1) {
-		this.health = health;
+	render() {
+		this.drawFillRect(this.x, this.y, this.width, this.height, this.color)
 	}
 
-	takeDamage(damage = 1) {
-		this.health -= damage;
-	}
-	//functions for destroying brick
-
-	//later functions for brick health count and color change
 }
 
 class Ball {
@@ -194,17 +214,21 @@ document.addEventListener('keydown', handleKeyDown, false);
 document.addEventListener('keyup', handleKeyUp, false);
 
 
-function drawBricks() {
-	for (let c = 0; c < brickColumnCount; c++) {
-		let brickRow = [];
-		for(let r = 0; r < brickRowCount; r++) {
-			let brickX = (c *(brickWidth + brickPadding)) + brickOffsetLeft;
-			let brickY = (r * (brickHeight + brickPadding)) + brickOffsetTop;
-			let brick = new Brick(brickX, brickY, brickWidth, brickHeight, brickColor)
+function buildBricks(level) {
+	for (let r = 0; r < level.rowCount; r++) {
+		for(let c = 0; c < level.columnCount; c++) {
+			let brickX = (c *(brickWidth + level.padding)) + level.offsetLeft;
+			let brickY = (r * (brickHeight + level.padding)) + level.offsetTop;
+			let brick = new Brick(brickHealth, brickX, brickY, brickWidth, brickHeight, brickColor)
 			brick.render();
-			brickRow.push(brick);
+			bricksArray.push(brick);
 		}
-		bricksArray.push(brickRow);
+	}
+}
+
+function renderBricks(bricksArray) {
+	for (let i = 0; i < bricksArray.length; i++) {
+		bricksArray[i].render();
 	}
 }
 
@@ -223,7 +247,7 @@ draw = () => {
 		};
 
 		//RENDER
-		drawBricks();
+		renderBricks(bricksArray);
 		ball.render();
 		paddle.render();
 	}
@@ -232,6 +256,7 @@ draw = () => {
 //#### INIT GAME OBJECTS ####
 let paddle = new Paddle((canvas.width / 2) - (paddleWidth / 2), canvas.height - 30,  paddleWidth, paddleHeight, paddleColor)
 let ball = new Ball(canvas.width / 2, canvas.height / 2,  ballRadius, 0, Math.PI*2, ballColor)
+buildBricks(level1);
 
 //#### INIT GAME ####
 setInterval(draw, 10);
