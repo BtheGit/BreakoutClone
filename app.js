@@ -1,3 +1,12 @@
+const canvasWidth = 650;
+const canvasHeight = 400;
+
+
+let canvas = document.getElementById("gameCanvas");
+canvas.width = canvasWidth;
+canvas.height = canvasHeight;
+let ctx = canvas.getContext("2d");
+
 //##### GAME STATE HANDLERS #####
 let rightPressed = false;
 let leftPressed = false;
@@ -6,16 +15,23 @@ let isDead = false;
 let gameOver = false;
 
 //##### VARIABLES ######
-const canvasWidth = 650;
-const canvasHeight = 400;
+let playerLives = 3;
+let currentLevel = 0;
 
-const paddleSpeed = 5;
+
+const paddleSpeed =8;
 const paddleWidth = 100;
 const paddleHeight = 18;
 const paddleColor = "blue";
+const paddleStartX = (canvas.width / 2) - (paddleWidth / 2);
+const paddleStartY = canvas.height - 30;
 
 const ballRadius = 8;
 const ballColor = "red";
+const ballStartX = canvas.width / 2;
+const ballStartY = canvas.height - 50;
+const ballStartDX = -4;
+const ballStartDY = -4;
 
 const brickWidth = 75;
 const brickHeight = 20;
@@ -24,44 +40,60 @@ const brickColor = "green";
 
 const bricksArray = [];
 
-let canvas = document.getElementById("gameCanvas");
-canvas.width = canvasWidth;
-canvas.height = canvasHeight;
-let ctx = canvas.getContext("2d");
+const LEVELS = [
+	{
+		board:[
+			[0,0,0,0,0,0,0],
+			[0,0,0,0,0,0,0],
+			[0,1,0,0,0,0,0]
+		],
+		padding: 10,
+		offsetTop: 30,
+		offsetLeft: 30
+	},
+	{
+		board:[
+			[0,0,0,0,0,0,0],
+			[0,0,0,0,0,0,0],
+			[1,0,0,0,0,0,0]
+		],
+		padding: 10,
+		offsetTop: 30,
+		offsetLeft: 30
+	},
+	{
+		board:[
+			[1,1,1,1,1,1,1],
+			[1,1,1,1,1,1,1],
+			[1,1,1,1,1,1,1]
+		],
+		padding: 10,
+		offsetTop: 30,
+		offsetLeft: 30
+	},
+	{
+		board:[
+			[0,0,0,1,0,0,0],
+			[0,2,4,4,4,2,0],
+			[0,0,2,1,2,0,0]
+		],
+		padding: 10,
+		offsetTop: 30,
+		offsetLeft: 30
+	},
+	{
+		board:[
+			[1,0,1,0,1,1,1],
+			[3,1,4,1,1,0,0],
+			[1,2,2,2,3,2,1],
+			[1,2,2,2,3,2,1]
+		],
+		padding: 10,
+		offsetTop: 30,
+		offsetLeft: 30
+	}
+]
 
-const level1 = {
-	board:[
-		[1,1,1,1,1,1,1],
-		[1,1,1,1,1,1,1],
-		[1,1,1,1,1,1,1]
-	],
-	padding: 10,
-	offsetTop: 30,
-	offsetLeft: 30
-}
-
-const level2 = {
-	board:[
-		[0,0,0,1,0,0,0],
-		[0,2,4,4,4,2,0],
-		[0,0,2,1,2,0,0]
-	],
-	padding: 10,
-	offsetTop: 30,
-	offsetLeft: 30
-}
-
-const level3 = {
-	board:[
-		[1,0,1,0,1,1,1],
-		[3,1,4,1,1,0,0],
-		[1,2,2,2,3,2,1],
-		[1,2,2,2,3,2,1]
-	],
-	padding: 10,
-	offsetTop: 30,
-	offsetLeft: 30
-}
 
 //#### CLASS DEFINITIONS ####
 class Rect {
@@ -135,6 +167,11 @@ class Paddle extends Rect {
 		}
 	}
 
+	reset() {
+		this.x = paddleStartX;
+		this.y = paddleStartY;
+	}
+
 	render() {
 		this.drawFillRect(this.x, this.y, this.width, this.height, this.color)
 	}
@@ -145,8 +182,9 @@ class Ball {
 	constructor(x = 0, y = 0, radius = 20, start = 0, end = Math.PI * 2, color = "purple", direction = false) {
 		this.x = x;
 		this.y = y;
-		this.dx = -2;
-		this.dy = -2;
+		this.dx = ballStartDX;
+		this.dy = ballStartDY;
+		// this.speed = 0;
 		this.radius = radius;
 		this.start = start;
 		this.end = end;
@@ -182,6 +220,13 @@ class Ball {
 		}
 	}
 
+	reset() {
+		this.x = ballStartX;
+		this.y = ballStartY;
+		this.dx = ballStartDX;
+		this.dy = ballStartDY;
+	}
+
 	collide(object) {
 		if(this.y - this.radius <= object.y - (object.height/2) || this.y + this.radius >= object.y + (object.height/2)){
 		  //Hit was from below the brick or above
@@ -193,11 +238,6 @@ class Ball {
 		  this.dx = -this.dx
 		}
 	}
-
-				// ball.x + ball.radius > brick.x 
-				// && ball.x - ball.radius < brick.x + brick.width 
-				// && ball.y + ball.radius > brick.y 
-				// && ball.y - ball.radius < brick.y + brick.height
 
 	drawFillArc(startx, starty, radius, start, end, color = "#000000", direction = false) {
 		ctx.beginPath();
@@ -291,13 +331,31 @@ function detectCollisions() {
 	}
 }
 
+function onDeath() {
 //TODO: Function to handle onDeath 
 //Check if lives remaining
 //if yes Reset level
 //if no set gameOver to true
+	
+}
+
+function checkLevelWinStatus() {
+	//Check if any of the bricks are visible and change to next level
+	if(!bricksArray.some(elem => elem.isVisible())) {
+		currentLevel += 1;
+		initBoard();
+	}
+}
+
+function initBoard() {
+	paddle.reset();
+	ball.reset();
+	buildBricks(LEVELS[currentLevel]);
+	draw();
+}
 
 //#### MAIN GAME LOOP ####
-draw = () => {
+function draw() {
 	if(!isPaused) {
 		//CLEAR SCREEN
 		ctx.clearRect(0,0,canvas.width, canvas.height);
@@ -315,14 +373,18 @@ draw = () => {
 		renderBricks(bricksArray);
 		ball.render();
 		paddle.render();
+
+		//CHECK VICTORY CONDITIONS
+		checkLevelWinStatus();
 	}
+	requestAnimationFrame(draw);
 }
 
 //#### INIT GAME OBJECTS ####
-let paddle = new Paddle((canvas.width / 2) - (paddleWidth / 2), canvas.height - 30,  paddleWidth, paddleHeight, paddleColor)
-let ball = new Ball(canvas.width / 2, canvas.height - 50,  ballRadius, 0, Math.PI*2, ballColor)
-buildBricks(level2);
+let	paddle = new Paddle(paddleStartX, paddleStartY,  paddleWidth, paddleHeight, paddleColor)
+let	ball = new Ball(ballStartX, ballStartY,  ballRadius, 0, Math.PI*2, ballColor)
+
+
 
 //#### INIT GAME ####
-setInterval(draw, 10);
-
+initBoard();
