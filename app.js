@@ -1,30 +1,3 @@
-
-
-// drawEmptyRect = (startx, starty, width, height, color = "#000000") => {
-// 	ctx.beginPath();
-// 	ctx.rect(startx, starty, width, height);
-// 	ctx.strokeStyle = color;
-// 	ctx.stroke();
-// 	ctx.closePath();
-// }
-
-
-// drawEmptyArc = (startx, starty, radius, start, end, color = "#000000", direction = false) => {
-// 	ctx.beginPath();
-// 	ctx.arc(startx, starty, radius, start, end, direction);
-// 	ctx.strokeStyle = color;
-// 	ctx.stroke();
-// 	ctx.closePath();
-// }
-
-
-// drawFillRect(40,40,50,50, "purple");
-// drawEmptyRect(100,40,50,50, "purple");
-
-// drawFillArc(200, 200, 30, 0, Math.PI * 2, false, "blue");
-// drawEmptyArc(300, 200, 30, 0, Math.PI * 2, false, "blue");
-
-
 //##### GAME STATE HANDLERS #####
 let rightPressed = false;
 let leftPressed = false;
@@ -57,12 +30,10 @@ let ctx = canvas.getContext("2d");
 
 const level1 = {
 	board:[
-		1,1,1,1,1,1,1,
-		1,1,1,1,1,1,1,
-		1,1,1,1,1,1,1
+		[1,1,1,1,1,1,1],
+		[1,1,1,1,1,1,1],
+		[1,1,1,2,2,2,1]
 	],
-	rowCount: 3,
-	columnCount: 7,
 	padding: 10,
 	offsetTop: 30,
 	offsetLeft: 30
@@ -101,14 +72,17 @@ class Brick extends Rect {
 		this.health -= damage;
 	}
 
+	isVisible() {
+		return this.health ? true : false;
+	}
+
 	render() {
 		if(this.health > 0) {
 			this.drawFillRect(this.x, this.y, this.width, this.height, this.color)
 		}
 	}
-	//functions for destroying brick
 
-	//later functions for brick health count and color change
+	//TODO: later functions for brick health count color change
 }
 
 class Paddle extends Rect {
@@ -175,6 +149,23 @@ class Ball {
 		}
 	}
 
+	collide(object) {
+		if(this.y - this.radius <= object.y - (object.height/2) || this.y + this.radius >= object.y + (object.height/2)){
+		  //Hit was from below the brick or above
+			this.dy = -this.dy;
+		}
+
+		if(this.x  + this.radius <= object.x + (object.width / 2 || this.x  - this.radius >= object.x - (object.width / 2))){
+		  //Hit was on left or right
+		  this.dx = -this.dx
+		}
+	}
+
+				// ball.x + ball.radius > brick.x 
+				// && ball.x - ball.radius < brick.x + brick.width 
+				// && ball.y + ball.radius > brick.y 
+				// && ball.y - ball.radius < brick.y + brick.height
+
 	drawFillArc(startx, starty, radius, start, end, color = "#000000", direction = false) {
 		ctx.beginPath();
 		ctx.arc(startx, starty, radius, start, end, direction);
@@ -215,10 +206,11 @@ document.addEventListener('keyup', handleKeyUp, false);
 
 
 function buildBricks(level) {
-	for (let r = 0; r < level.rowCount; r++) {
-		for(let c = 0; c < level.columnCount; c++) {
-			let brickX = (c *(brickWidth + level.padding)) + level.offsetLeft;
-			let brickY = (r * (brickHeight + level.padding)) + level.offsetTop;
+	for (let r = 0; r < level.board.length; r++) {
+		for(let c = 0; c < level.board[r].length; c++) {
+			const brickX = (c *(brickWidth + level.padding)) + level.offsetLeft;
+			const brickY = (r * (brickHeight + level.padding)) + level.offsetTop;
+			const brickHealth = level.board[r][c];
 			let brick = new Brick(brickHealth, brickX, brickY, brickWidth, brickHeight, brickColor)
 			brick.render();
 			bricksArray.push(brick);
@@ -229,6 +221,40 @@ function buildBricks(level) {
 function renderBricks(bricksArray) {
 	for (let i = 0; i < bricksArray.length; i++) {
 		bricksArray[i].render();
+	}
+}
+
+function detectCollisions() {
+	//Check collisions with bottom of screen
+	if (ball.y + ball.radius >= canvasHeight) {
+		console.log('dead')
+	}
+
+	//Check collisions with Bricks
+	for (let i in bricksArray) {
+		const brick = bricksArray[i];
+		if(brick.isVisible()) {			
+			if(
+				ball.x + ball.radius > brick.x 
+				&& ball.x - ball.radius < brick.x + brick.width 
+				&& ball.y + ball.radius > brick.y 
+				&& ball.y - ball.radius < brick.y + brick.height
+			) {	
+				ball.collide(brick);
+				brick.takeDamage();
+			}
+		}				
+	}
+
+	//Check collisions with Paddle
+	if(
+		ball.x + ball.radius > paddle.x 
+		&& ball.x - ball.radius < paddle.x + paddle.width 
+		&& ball.y + ball.radius > paddle.y 
+		&& ball.y - ball.radius < paddle.y + paddle.height
+	) {
+		//change direction of ball
+		ball.collide(paddle);
 	}
 }
 
@@ -247,6 +273,7 @@ draw = () => {
 		};
 
 		//RENDER
+		detectCollisions();
 		renderBricks(bricksArray);
 		ball.render();
 		paddle.render();
