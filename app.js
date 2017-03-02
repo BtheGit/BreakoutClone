@@ -2,7 +2,8 @@
 let rightPressed = false;
 let leftPressed = false;
 let isPaused = false; 
-// let isFinished = false;
+let isDead = false;
+let gameOver = false;
 
 //##### VARIABLES ######
 const canvasWidth = 650;
@@ -32,7 +33,30 @@ const level1 = {
 	board:[
 		[1,1,1,1,1,1,1],
 		[1,1,1,1,1,1,1],
-		[1,1,1,2,2,2,1]
+		[1,1,1,1,1,1,1]
+	],
+	padding: 10,
+	offsetTop: 30,
+	offsetLeft: 30
+}
+
+const level2 = {
+	board:[
+		[0,0,0,1,0,0,0],
+		[0,2,4,4,4,2,0],
+		[0,0,2,1,2,0,0]
+	],
+	padding: 10,
+	offsetTop: 30,
+	offsetLeft: 30
+}
+
+const level3 = {
+	board:[
+		[1,0,1,0,1,1,1],
+		[3,1,4,1,1,0,0],
+		[1,2,2,2,3,2,1],
+		[1,2,2,2,3,2,1]
 	],
 	padding: 10,
 	offsetTop: 30,
@@ -76,9 +100,14 @@ class Brick extends Rect {
 		return this.health ? true : false;
 	}
 
+	getColor(health) {
+		const colors = ['green', 'orange', 'purple', 'black'];
+		return colors[health - 1];
+	}
+
 	render() {
 		if(this.health > 0) {
-			this.drawFillRect(this.x, this.y, this.width, this.height, this.color)
+			this.drawFillRect(this.x, this.y, this.width, this.height, this.getColor(this.health))
 		}
 	}
 
@@ -116,8 +145,8 @@ class Ball {
 	constructor(x = 0, y = 0, radius = 20, start = 0, end = Math.PI * 2, color = "purple", direction = false) {
 		this.x = x;
 		this.y = y;
-		this.dx = 2;
-		this.dy = 2;
+		this.dx = -2;
+		this.dy = -2;
 		this.radius = radius;
 		this.start = start;
 		this.end = end;
@@ -126,26 +155,30 @@ class Ball {
 	}
 
 	moveX() {
-		if (this.x + this.radius > canvas.width - this.dx ) {
-			this.x = canvas.width - this.radius;
-			this.dx = -this.dx;
-		} else if (this.x - this.radius < 0 - this.dx) {
-			this.x = this.radius;
-			this.dx = -this.dx;
-		} else {
-			this.x += this.dx;
+		if(!isDead){
+			if (this.x + this.radius > canvas.width - this.dx ) {
+				this.x = canvas.width - this.radius;
+				this.dx = -this.dx;
+			} else if (this.x - this.radius < 0 - this.dx) {
+				this.x = this.radius;
+				this.dx = -this.dx;
+			} else {
+				this.x += this.dx;
+			}
 		}
 	}
 
 	moveY() {
-		if (this.y + this.radius > canvas.height - this.dy ) {
-			this.y = canvas.height - this.radius;
-			this.dy = -this.dy;
-		} else if (this.y - this.radius < 0 - this.dy) {
-			this.y = this.radius;
-			this.dy = -this.dy;
-		} else {
-			this.y += this.dy;
+		if(!isDead) {
+			if (this.y + this.radius > canvas.height - this.dy ) {
+				this.y = canvas.height - this.radius;
+				this.dy = -this.dy;
+			} else if (this.y - this.radius < 0 - this.dy) {
+				this.y = this.radius;
+				this.dy = -this.dy;
+			} else {
+				this.y += this.dy;
+			}			
 		}
 	}
 
@@ -227,7 +260,7 @@ function renderBricks(bricksArray) {
 function detectCollisions() {
 	//Check collisions with bottom of screen
 	if (ball.y + ball.radius >= canvasHeight) {
-		console.log('dead')
+		isDead = true;
 	}
 
 	//Check collisions with Bricks
@@ -258,6 +291,11 @@ function detectCollisions() {
 	}
 }
 
+//TODO: Function to handle onDeath 
+//Check if lives remaining
+//if yes Reset level
+//if no set gameOver to true
+
 //#### MAIN GAME LOOP ####
 draw = () => {
 	if(!isPaused) {
@@ -282,8 +320,8 @@ draw = () => {
 
 //#### INIT GAME OBJECTS ####
 let paddle = new Paddle((canvas.width / 2) - (paddleWidth / 2), canvas.height - 30,  paddleWidth, paddleHeight, paddleColor)
-let ball = new Ball(canvas.width / 2, canvas.height / 2,  ballRadius, 0, Math.PI*2, ballColor)
-buildBricks(level1);
+let ball = new Ball(canvas.width / 2, canvas.height - 50,  ballRadius, 0, Math.PI*2, ballColor)
+buildBricks(level2);
 
 //#### INIT GAME ####
 setInterval(draw, 10);
