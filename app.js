@@ -16,18 +16,18 @@ let gameOver = false;
 
 //##### VARIABLES ######
 let playerLives = 3;
-let currentLevel = 0;
+let currentLevel = 1;
 
 
 const paddleSpeed =8;
 const paddleWidth = 100;
 const paddleHeight = 18;
-const paddleColor = "blue";
+const paddleColor = "yellow";
 const paddleStartX = (canvas.width / 2) - (paddleWidth / 2);
 const paddleStartY = canvas.height - 30;
 
 const ballRadius = 8;
-const ballColor = "red";
+const ballColor = "white";
 const ballStartX = canvas.width / 2;
 const ballStartY = canvas.height - 50;
 const ballStartDX = -4;
@@ -41,26 +41,26 @@ const brickColor = "green";
 const bricksArray = [];
 
 const LEVELS = [
-	{
-		board:[
-			[0,0,0,0,0,0,0],
-			[0,0,0,0,0,0,0],
-			[0,1,0,0,0,0,0]
-		],
-		padding: 10,
-		offsetTop: 30,
-		offsetLeft: 30
-	},
-	{
-		board:[
-			[0,0,0,0,0,0,0],
-			[0,0,0,0,0,0,0],
-			[1,0,0,0,0,0,0]
-		],
-		padding: 10,
-		offsetTop: 30,
-		offsetLeft: 30
-	},
+	// {
+	// 	board:[
+	// 		[0,0,0,0,0,0,0],
+	// 		[0,0,0,0,0,0,0],
+	// 		[0,1,0,0,0,0,0]
+	// 	],
+	// 	padding: 10,
+	// 	offsetTop: 30,
+	// 	offsetLeft: 30
+	// },
+	// {
+	// 	board:[
+	// 		[0,0,0,0,0,0,0],
+	// 		[0,0,0,0,0,0,0],
+	// 		[1,0,0,0,0,0,0]
+	// 	],
+	// 	padding: 10,
+	// 	offsetTop: 30,
+	// 	offsetLeft: 30
+	// },
 	{
 		board:[
 			[1,1,1,1,1,1,1],
@@ -133,7 +133,7 @@ class Brick extends Rect {
 	}
 
 	getColor(health) {
-		const colors = ['green', 'orange', 'purple', 'black'];
+		const colors = ['green', 'orange', 'purple', 'red'];
 		return colors[health - 1];
 	}
 
@@ -254,6 +254,70 @@ class Ball {
 	}
 }
 
+class Star  {
+	constructor(x, y, size, vel, color) {
+		this.x = x,
+		this.y = y,
+		this.size = size,
+		this.vel = vel,
+		this.color = color
+	}
+
+	draw() {
+		ctx.fillStyle = this.color;
+		ctx.fillRect(this.x, this.y, this.size, this.size);
+	}
+}
+
+class Starfield {
+	constructor(starCount) {
+		this.starCount = starCount;
+		this.minVel = 2;
+		this.maxVel = 4;
+		this.fps = 1;
+		this.stars = this.generateStars();
+	}
+
+	generateStars() {
+		console.log(this.fps)
+		let starArray = [];
+		for (let i = 0; i < this.starCount; i++) {
+			let star = new Star (
+				Math.random() * canvas.width, 
+				Math.random() * canvas.height, 
+				(Math.random() * 2) + 1,
+				(Math.random() * (this.maxVel - this.minVel)) + this.minVel, 
+				"#FFFFFF"
+			) 
+			starArray.push(star);
+		}
+		return starArray;
+	}
+
+	renderStars() {
+		for(let i = 0; i < this.stars.length; i++) {
+			this.stars[i].draw();
+		}
+	}
+
+	updatePositions() {
+		const dy = 1 / this.fps;
+		for(let i = 0; i < this.stars.length; i++) {
+			this.stars[i].y += dy * this.stars[i].vel;
+			if(this.stars[i].y > canvas.height) {
+				this.stars[i] = new Star (
+					Math.random() * canvas.width, 
+					0, 
+					(Math.random() * 2) + 1,
+					(Math.random() * (this.maxVel - this.minVel)) + this.minVel, 
+					"#FFFFFF"
+				) 
+			}
+		}
+	}
+
+}
+
 //#### EVENT LISTENER CALLBACKS ####
 handleKeyDown = (event) => {
 	if (event.keyCode === 39) {
@@ -277,7 +341,7 @@ handleKeyUp = (event) => {
 document.addEventListener('keydown', handleKeyDown, false);
 document.addEventListener('keyup', handleKeyUp, false);
 
-
+//#### BRICK LOGIC #####
 function buildBricks(level) {
 	for (let r = 0; r < level.board.length; r++) {
 		for(let c = 0; c < level.board[r].length; c++) {
@@ -295,6 +359,16 @@ function renderBricks(bricksArray) {
 	for (let i = 0; i < bricksArray.length; i++) {
 		bricksArray[i].render();
 	}
+}
+
+
+//#### STARFIELD ####
+
+
+
+//#### PHYSICS #####
+function clamp(val, min, max) {
+	return Math.min(max, Math.max(min, val));
 }
 
 function detectCollisions() {
@@ -331,6 +405,7 @@ function detectCollisions() {
 	}
 }
 
+//##### GAME LOGIC ####
 function onDeath() {
 //TODO: Function to handle onDeath 
 //Check if lives remaining
@@ -354,11 +429,17 @@ function initBoard() {
 	draw();
 }
 
+function cls() {
+	ctx.fillStyle = '#000000';
+	ctx.fillRect(0,0, canvas.width, canvas.height);		
+}
+
 //#### MAIN GAME LOOP ####
 function draw() {
 	if(!isPaused) {
 		//CLEAR SCREEN
-		ctx.clearRect(0,0,canvas.width, canvas.height);
+		// ctx.clearRect(0,0,canvas.width, canvas.height);
+		cls();
 
 		//HANDLE USER INPUT
 		if(leftPressed) {
@@ -370,12 +451,14 @@ function draw() {
 
 		//RENDER
 		detectCollisions();
+		starField.renderStars();
+		starField.updatePositions();
 		renderBricks(bricksArray);
 		ball.render();
 		paddle.render();
 
 		//CHECK VICTORY CONDITIONS
-		checkLevelWinStatus();
+		// checkLevelWinStatus();
 	}
 	requestAnimationFrame(draw);
 }
@@ -383,6 +466,7 @@ function draw() {
 //#### INIT GAME OBJECTS ####
 let	paddle = new Paddle(paddleStartX, paddleStartY,  paddleWidth, paddleHeight, paddleColor)
 let	ball = new Ball(ballStartX, ballStartY,  ballRadius, 0, Math.PI*2, ballColor)
+const starField = new Starfield(100);
 
 
 
