@@ -122,6 +122,10 @@ class Brick extends Rect {
 	constructor(health = 1, x = 0, y = 0, width = 100, height = 20, color = "purple") {
 		super(x, y, width, height, color);
 		this.health = health;
+		this.top = this.y;
+		this.bottom = this.y + this.height;
+		this.left = this.x;
+		this.right = this.x + this.width;
 	}
 
 	takeDamage(damage = 1) {
@@ -228,14 +232,28 @@ class Ball {
 	}
 
 	collide(object) {
-		if(this.y - this.radius <= object.y - (object.height/2) || this.y + this.radius >= object.y + (object.height/2)){
-		  //Hit was from below the brick or above
-			this.dy = -this.dy;
-		}
 
-		if(this.x  + this.radius <= object.x + (object.width / 2 || this.x  - this.radius >= object.x - (object.width / 2))){
-		  //Hit was on left or right
-		  this.dx = -this.dx
+		//WARNING This probably won't work with corner collisions
+
+		//Return the ball to position prior to collision
+		this.x -= this.dx;
+		this.y -= this.dy;
+
+		//Is the ball above or below the object?
+		if(this.x > object.x && this.x < object.x + object.width) {
+			//Is the ball above? 
+			if(this.y < object.y) {
+				this.dy = -this.dy;
+			} else {
+				this.dy = -this.dy;
+			}
+		} else {
+			//Is the ball on the left?
+			if(this.x < object.x) {
+				this.dx = -this.dx;
+			} else {
+				this.dx = -this.dx;
+			}
 		}
 	}
 
