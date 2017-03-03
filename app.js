@@ -272,9 +272,9 @@ class Star  {
 class Starfield {
 	constructor(starCount) {
 		this.starCount = starCount;
-		this.minVel = 2;
-		this.maxVel = 4;
-		this.fps = 1;
+		this.minVel = 15;
+		this.maxVel = 30;
+		this.fps = 30;
 		this.stars = this.generateStars();
 	}
 
