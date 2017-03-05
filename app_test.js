@@ -15,8 +15,10 @@ let isDead = false;
 let gameOver = false;
 
 //##### VARIABLES ######
+
+//TODO Decide how to track player info, implement reset and gameover and level advance correctly
 let playerLives = 3;
-let currentLevel = 1;
+let currentLevel = 4;
 
 
 const paddleSpeed =8;
@@ -30,8 +32,7 @@ const ballRadius = 8;
 const ballColor = "white";
 const ballStartX = canvas.width / 2;
 const ballStartY = canvas.height - 50;
-const ballStartDX = -4;
-const ballStartDY = -4;
+const ballSpeed = 4;
 
 const brickWidth = 75;
 const brickHeight = 20;
@@ -41,31 +42,35 @@ const brickColor = "green";
 const bricksArray = [];
 
 const LEVELS = [
-	// {
-	// 	board:[
-	// 		[0,0,0,0,0,0,0],
-	// 		[0,0,0,0,0,0,0],
-	// 		[0,1,0,0,0,0,0]
-	// 	],
-	// 	padding: 10,
-	// 	offsetTop: 30,
-	// 	offsetLeft: 30
-	// },
-	// {
-	// 	board:[
-	// 		[0,0,0,0,0,0,0],
-	// 		[0,0,0,0,0,0,0],
-	// 		[1,0,0,0,0,0,0]
-	// 	],
-	// 	padding: 10,
-	// 	offsetTop: 30,
-	// 	offsetLeft: 30
-	// },
+	{
+		board:[
+			[0,0,0,0,0,0,0],
+			[0,1,0,0,0,0,0],
+			[0,0,0,0,0,0,0],
+			[0,0,0,0,0,0,0],
+		],
+		padding: 10,
+		offsetTop: 30,
+		offsetLeft: 30
+	},
 	{
 		board:[
 			[1,1,1,1,1,1,1],
-			[1,1,1,1,1,1,1],
-			[1,1,1,1,1,1,1]
+			[1,1,1,0,1,1,1],
+			[1,1,0,0,0,1,1],
+			[1,0,0,0,0,0,1],
+		],
+		padding: 10,
+		offsetTop: 30,
+		offsetLeft: 30
+	},
+	{
+		board:[
+			[1,0,2,0,2,0,1],
+			[1,0,1,0,1,0,1],
+			[3,0,3,0,3,0,3],
+			[1,0,1,0,1,0,1],
+			[1,0,2,0,2,0,1],
 		],
 		padding: 10,
 		offsetTop: 30,
@@ -180,12 +185,13 @@ class Paddle extends Rect {
 
 class Ball {
 	constructor(x = 0, y = 0, radius = 20, start = 0, end = Math.PI * 2, color = "purple", direction = false) {
-		// this.type = 'ball';
+		this.type = 'ball';
 		this.x = x;
 		this.y = y;
-		this.dx = ballStartDX;
-		this.dy = ballStartDY;
-		// this.speed = 0;
+		this.speed = ballSpeed;
+		this.angle = Math.random() * Math.PI * 2;
+		this.dx = Math.cos(this.angle) * ballSpeed;
+		this.dy = Math.sin(this.angle) * ballSpeed;
 		this.radius = radius;
 		this.start = start;
 		this.end = end;
@@ -224,8 +230,11 @@ class Ball {
 	reset() {
 		this.x = ballStartX;
 		this.y = ballStartY;
-		this.dx = ballStartDX;
-		this.dy = ballStartDY;
+		this.speed = ballSpeed;
+		this.angle = Math.random() * Math.PI * 2;
+		this.angle = clamp(this.angle, (Math.PI * 3) / 4, Math.PI / 4)
+		this.dx = Math.cos(this.angle) * ballSpeed;
+		this.dy = Math.sin(this.angle) * ballSpeed;
 	}
 
 	collide(object) {
@@ -233,74 +242,72 @@ class Ball {
 		//WARNING This probably won't work with corner collisions
 
 		//Return the ball to position prior to collision
-		this.x -= this.dx;
-		this.y -= this.dy;
+		// this.x -= this.dx;
+		// this.y -= this.dy;
+		const lastX = this.x - this.dx;
+		const lastY = this.y - this.dy;
 
 		//Is the ball above or below the object?
-		if(this.x > object.x && this.x < object.x + object.width) {
+		if(lastX > object.x && lastX < object.x + object.width) {
 			//Is the ball above? 
-			if(this.y < object.y) {
+			if(lastY < object.y) {
 				//If object.type = 'paddle', determine where on paddle it hits and adjust angle
 				if (object.type === 'paddle'){
-					// const paddleCenter = object.x + (object.width / 2);
-					// const distanceFromCenter = paddleCenter - this.x;
-					// const areaOfCollision = distanceFromCenter / (object.width / 2) * 100;
-					// //Divide paddle into 6, middle 2 are simple reflection
-					// const ballSpeeds = [
-					// 	[-4, -1],
-					// 	[-4, -2],
-					// 	[-4, -3],
-					// 	[-4, -4],
-					// 	[-4, -4],
-					// 	[4, 4],
-					// 	[4, 4],
-					// 	[4, 3],
-					// 	[4, 2],
-					// 	[4, 1]
 
-					// ]
-					// const direction = 
-					// let quadrant;
+					//Fun FACTS
+					//if this.dx is positive, this is coming from the left
+					//if this.dx is negative, this is coming from the right
+					const paddleCenter = object.x + (object.width / 2);
+					const distanceFromCenter = paddleCenter - this.x;
+					const areaOfCollision = distanceFromCenter / (object.width / 2) * 100;
 
-					// if (areaOfCollision > 80) {
-					// 	quadrant = 0;
-					// } else if (areaOfCollision > 60) {
-					// 	quadrant = 1;
-					// } else if (areaOfCollision > 40) {
-					// 	quadrant = 2;
-					// } else if (areaOfCollision > 20) {
-					// 	quadrant = 3;
-					// } else if (areaOfCollision >= 0) {
-					// 	quadrant = 4;
-					// } else if (areaOfCollision > -20) {
-					// 	quadrant = 5;
-					// } else if (areaOfCollision > -40) {
-					// 	quadrant = 6
-					// } else if (areaOfCollision > -60) {
-					// 	quadrant = 7;
-					// } else if (areaOfCollision > -80) {
-					// 	quadrant = 8;
-					// } else {
-					// 	quadrant = 9;
-					// }
+					//Divide paddle into 6, middle 2 are simple reflection
+					let newAngle, newSpeed;
+					
+					if (areaOfCollision > 90) {
+						newAngle =(Math.PI * 5) / 6;
+						newSpeed = ballSpeed + 4;
+						//left side (set angle and speed)
+					}  else if (areaOfCollision > 10) {
+						newAngle = (Math.PI * 3) / 4;
+						newSpeed = ballSpeed + 2;
+						//left middle (variable angle and speed)
+					} else if (areaOfCollision > -10) {
+						//middle (set 90 degree angle reset speed)
+						newAngle = (Math.PI * 3) /2;
+						newSpeed = ballSpeed;
+					} else if (areaOfCollision > -90) {
+						//right middle (variable angle and speed)
+						newAngle = Math.PI / 4;
+						newSpeed = ballSpeed + 2;
+					} else {
+						//rigth side (set angle and speed)
+						newAngle = Math.PI / 6;
+						newSpeed = ballSpeed + 4;
+					}
 
-					// console.log(quadrant)
-					// // this.dx = ballSpeeds[quadrant][0];
-					// this.dy = ballSpeeds[quadrant][1];
-
-					this.dy = -this.dy; 
+					this.speed = newSpeed;
+					this.angle = newAngle;
+					this.dx = Math.cos(this.angle) * this.speed;
+					this.dy = -Math.abs(Math.sin(this.angle) * this.speed);
 
 				} else {					
 					this.dy = -this.dy;
 				}
 			} else {
+				this.x = lastX;
+				this.y = lastY;
 				this.dy = -this.dy;
 			}
 		} else {
 			//Is the ball on the left?
-			if(this.x < object.x) {
+			if(lastX < object.x) {
+				this.x = lastX;
+				this.y = lastY;				
 				this.dx = -this.dx;
 			} else {
+				this.x = lastX;
+				this.y = lastY;
 				this.dx = -this.dx;
 			}
 		}
@@ -385,28 +392,6 @@ class Starfield {
 
 }
 
-//#### EVENT LISTENER CALLBACKS ####
-handleKeyDown = (event) => {
-	if (event.keyCode === 39) {
-		rightPressed = true;
-	} else if (event.keyCode === 37) {
-		leftPressed = true;
-	} else if (event.keyCode === 32) {
-		isPaused = !isPaused;
-	}
-}
-
-handleKeyUp = (event) => {
-	if (event.keyCode === 39) {
-		rightPressed = false;
-	} else if (event.keyCode === 37) {
-		leftPressed = false;
-	} 
-}
-
-//#### EVENT LISTENERS ####
-document.addEventListener('keydown', handleKeyDown, false);
-document.addEventListener('keyup', handleKeyUp, false);
 
 //#### BRICK LOGIC #####
 function buildBricks(level) {
@@ -473,21 +458,21 @@ function detectCollisions() {
 }
 
 //##### GAME LOGIC ####
-function onDeath() {
-//TODO: Function to handle onDeath 
-//Check if lives remaining
-//if yes Reset level
-//if no set gameOver to true
+// function onDeath() {
+// //TODO: Function to handle onDeath 
+// //Check if lives remaining
+// //if yes Reset level
+// //if no set gameOver to true
 	
-}
+// }
 
-function checkLevelWinStatus() {
-	//Check if any of the bricks are visible and change to next level
-	if(!bricksArray.some(elem => elem.isVisible())) {
-		currentLevel += 1;
-		initBoard();
-	}
-}
+// function checkLevelWinStatus() {
+// 	//Check if any of the bricks are visible and change to next level
+// 	if(!bricksArray.some(elem => elem.isVisible())) {
+// 		currentLevel += 1;
+// 		initBoard();
+// 	}
+// }
 
 function initBoard() {
 	paddle.reset();
@@ -500,6 +485,41 @@ function cls() {
 	ctx.fillStyle = '#000000';
 	ctx.fillRect(0,0, canvas.width, canvas.height);		
 }
+
+
+//#### EVENT LISTENER CALLBACKS ####
+handleKeyDown = (event) => {
+	if (event.keyCode === 39) {
+		rightPressed = true;
+	} else if (event.keyCode === 37) {
+		leftPressed = true;
+	} else if (event.keyCode === 32) {
+		isPaused = !isPaused;
+	}
+}
+
+handleKeyUp = (event) => {
+	if (event.keyCode === 39) {
+		rightPressed = false;
+	} else if (event.keyCode === 37) {
+		leftPressed = false;
+	} 
+}
+
+// handleMouseMove = (event) => {
+// 	let relativeX = event.clientX - canvas.offsetLeft;
+// 	if(relativeX > 0 && relativeX < canvas.width) {
+// 		const dist = relativeX - (paddleWidth / 2)
+// 		console.log(dist)
+// 		//todo figure out how to keep the paddle from moving too fast but still have relative motion
+// 		paddle.moveX(dist);
+// 	}
+// }
+
+//#### EVENT LISTENERS ####
+document.addEventListener('keydown', handleKeyDown, false);
+document.addEventListener('keyup', handleKeyUp, false);
+// document.addEventListener('mousemove', handleMouseMove, false);
 
 //#### MAIN GAME LOOP ####
 function draw() {
@@ -539,3 +559,15 @@ const starField = new Starfield(100);
 
 //#### INIT GAME ####
 initBoard();
+
+
+//TODOS:
+// Death and life check
+// Restart same level
+// Game Over 
+
+//Add in score (should also add slow speed increase so I can reuse levels)
+
+//Fix issue with next level
+
+//Display text
