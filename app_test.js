@@ -12,11 +12,13 @@ let animationFrameId;
 let rightPressed = false;
 let leftPressed = false;
 let isPaused = false; 
-let isDead = false;
+let isDead = false; //currently unused
+let isClamped = true;
 let gameOver = false;
 
 let playerLives = 3; //TODO Decide how to track player info, implement reset and gameover and level advance correctly
-let currentLevel = 1;
+let playerScore = 0;
+let currentLevel = 0;
 let bricksArray = [];
 
 //##### CONSTANTS ######
@@ -31,7 +33,7 @@ const paddleStartY = canvas.height - 30;
 const ballRadius = 8;
 const ballColor = "white";
 const ballStartX = canvas.width / 2;
-const ballStartY = canvas.height - 50;
+const ballStartY = canvas.height - 40;
 const ballSpeed = 4;
 
 const brickWidth = 75;
@@ -164,6 +166,9 @@ class Paddle extends Rect {
 			this.x = 0;
 		} else {
 			this.x += distance;
+			if(isClamped) {
+				ball.x += distance;
+			}
 		}
 	}
 
@@ -205,7 +210,7 @@ class Ball {
 	}
 
 	moveX() {
-		if(!isDead){
+		if(!isDead && !isClamped){
 			if (this.x + this.radius > canvas.width - this.dx ) {
 				this.x = canvas.width - this.radius;
 				this.dx = -this.dx;
@@ -219,7 +224,7 @@ class Ball {
 	}
 
 	moveY() {
-		if(!isDead) {
+		if(!isDead && !isClamped) {
 			if (this.y + this.radius > canvas.height - this.dy ) {
 				this.y = canvas.height - this.radius;
 				this.dy = -this.dy;
@@ -239,7 +244,7 @@ class Ball {
 		const newAngle = Math.random() * Math.PI * 2;
 		this.angle = clamp(newAngle, (Math.PI * 3) / 4, Math.PI / 4)
 		this.dx = Math.cos(this.angle) * ballSpeed;
-		this.dy = Math.sin(this.angle) * ballSpeed;
+		this.dy = -Math.abs(Math.sin(this.angle) * ballSpeed);
 	}
 
 	collide(object) {
@@ -381,7 +386,6 @@ class Starfield {
 	}
 
 	generateStars() {
-		console.log(this.fps)
 		let starArray = [];
 		for (let i = 0; i < this.starCount; i++) {
 			let star = new Star (
@@ -541,16 +545,13 @@ function detectCollisions() {
 
 //##### GAME LOGIC ####
 function onDeath() {
-//TODO: Function to handle onDeath 
-//Check if lives remaining
-//if yes Reset level
-//if no set gameOver to true
 	if(playerLives > 0) {
 		if(animationFrameId !== null){
 			cancelAnimationFrame(animationFrameId);
 		}
 		playerLives -= 1;
 		isDead = false;
+		isClamped = true;
 		initBoard();		
 	} else {
 		cancelAnimationFrame(animationFrameId)
@@ -563,6 +564,8 @@ function checkLevelWinStatus() {
 	//Check if any of the bricks are visible and change to next level
 	if(!bricksArray.some(elem => elem.isVisible())) {
 		currentLevel += 1;
+		buildBricks(LEVELS[currentLevel]);
+		isClamped = true;
 		initBoard();
 	}
 }
@@ -570,7 +573,6 @@ function checkLevelWinStatus() {
 function initBoard() {
 	paddle.reset();
 	ball.reset();
-	buildBricks(LEVELS[currentLevel]);
 	draw();
 }
 
@@ -587,7 +589,11 @@ handleKeyDown = (event) => {
 	} else if (event.keyCode === 37) {
 		leftPressed = true;
 	} else if (event.keyCode === 32) {
-		isPaused = !isPaused;
+		if(isClamped) {
+			isClamped = false;
+		} else{
+			isPaused = !isPaused;
+		}
 	}
 }
 
@@ -614,11 +620,17 @@ document.addEventListener('keydown', handleKeyDown, false);
 document.addEventListener('keyup', handleKeyUp, false);
 // document.addEventListener('mousemove', handleMouseMove, false);
 
-//#### MAIN GAME LOOP ####
+//#### MAIN GAME LOOPS ####
 function draw() {
+
+	//Solves the speed up problem
+	if(animationFrameId) {
+		cancelAnimationFrame(animationFrameId)
+	}
+	animationFrameId = requestAnimationFrame(draw);
 		if(!isPaused) {
+
 		//CLEAR SCREEN
-		// ctx.clearRect(0,0,canvas.width, canvas.height);
 		cls();
 
 		//HANDLE USER INPUT
@@ -640,7 +652,6 @@ function draw() {
 		//CHECK VICTORY CONDITIONS
 		checkLevelWinStatus();
 	}
-	animationFrameId = requestAnimationFrame(draw);
 }
 
 function gameOverScreen() {
@@ -655,22 +666,21 @@ function gameOverScreen() {
 			cls();
 			fountainLeft.render();
 			fountainMiddleLeft.render();
-			fountainMiddle.render();
+			fountainMiddleLeftB.render();
 			fountainMiddleRight.render();
+			fountainMiddleRightB.render();
 			fountainRight.render();
 		}
 	}
 
-
-
-	let fountainLeft = new Fountain(width * 0.2, height, '#0099FF', 0.3, 150);
-	let fountainMiddleLeft = new Fountain(width * 0.4, height, 'yellow', 0.55, 100);
-	let fountainMiddle = new Fountain(width * 0.5, height, 'red', 0.7, 50);
-	let fountainMiddleRight = new Fountain(width * 0.6, height, 'yellow', 0.55, 100);
-	let fountainRight = new Fountain(width * 0.8, height, "#0099FF", 0.3, 150);
+	let fountainLeft = new Fountain(width * 0.15, height, '#0099FF', 0.4, 150);
+	let fountainMiddleLeft = new Fountain(width * 0.4, height, 'yellow', 0.65, 100);
+	let fountainMiddleLeftB = new Fountain(width * 0.4, height, 'red', 0.65, 50);
+	let fountainMiddleRight = new Fountain(width * 0.6, height, 'yellow', 0.65, 100);
+	let fountainMiddleRightB = new Fountain(width * 0.6, height, 'red', 0.65, 50);
+	let fountainRight = new Fountain(width * 0.85, height, "#0099FF", 0.4, 150);
 
 	frame();
-
 }
 
 //#### INIT GAME OBJECTS ####
@@ -681,20 +691,18 @@ const starField = new Starfield(100);
 
 
 //#### INIT GAME ####
+buildBricks(LEVELS[currentLevel]);
 initBoard();
 
 //TODOS:
-// Death and life check
-// Restart same level
-// Game Over 
 
 //Keep ball stationary and clamped to the paddle until initial space bar press
 
 //Add in score (should also add slow speed increase so I can reuse levels)
 
-//Fix issue with next level
-
 //Display text
 
 //Render GAME OVER SCREEN with final score (maybe have a different animation background)
 //fireworks, 3d space, ripple effects
+
+//Handle Mouse input correctly
