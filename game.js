@@ -45,7 +45,7 @@ const LEVELS = [
 	{
 		board:[
 			[0,0,0,0,0,0,0],
-			[0,1,0,0,0,0,0],
+			[0,0,0,0,0,1,0],
 			[0,0,0,0,0,0,0],
 			[0,0,0,0,0,0,0],
 		],
@@ -199,10 +199,11 @@ class Ball {
 		this.type = 'ball';
 		this.x = x;
 		this.y = y;
-		this.speed = ballSpeed;
-		this.angle = Math.random() * Math.PI * 2;
-		this.dx = Math.cos(this.angle) * ballSpeed;
-		this.dy = Math.sin(this.angle) * ballSpeed;
+		this.baseSpeed = ballSpeed;
+		this.currentSpeed = this.baseSpeed;
+		this.angle = randRange((Math.PI * 3) / 4, Math.PI / 4);
+		this.dx = Math.cos(this.angle) * this.currentSpeed;
+		this.dy = -Math.abs(Math.sin(this.angle) * this.currentSpeed);
 		this.radius = radius;
 		this.start = start;
 		this.end = end;
@@ -241,16 +242,15 @@ class Ball {
 	reset() {
 		this.x = ballStartX;
 		this.y = ballStartY;
-		this.speed = ballSpeed;
-		const newAngle = Math.random() * Math.PI * 2;
-		this.angle = clamp(newAngle, (Math.PI * 3) / 4, Math.PI / 4)
-		this.dx = Math.cos(this.angle) * ballSpeed;
-		this.dy = -Math.abs(Math.sin(this.angle) * ballSpeed);
+		this.currentSpeed = this.baseSpeed;
+		this.angle = randRange((Math.PI * 3) / 4, Math.PI / 4);
+		this.dx = Math.cos(this.angle) * this.currentSpeed;
+		this.dy = -Math.abs(Math.sin(this.angle) * this.currentSpeed);
 	}
 
 	collide(object) {
 
-		//WARNING This probably won't work with corner collisions
+		//WARNING This doesn't work with corner collisions
 
 		//Return the ball to position prior to collision
 		// this.x -= this.dx;
@@ -277,30 +277,30 @@ class Ball {
 					
 					if (areaOfCollision > 90) {
 						newAngle =(Math.PI * 5) / 6;
-						newSpeed = ballSpeed + 4;
+						newSpeed = this.baseSpeed + 4;
 						//left side (set angle and speed)
 					}  else if (areaOfCollision > 5) {
 						newAngle = (Math.PI * 3) / 4;
-						newSpeed = ballSpeed + 2;
+						newSpeed = this.baseSpeed + 2;
 						//left middle (variable angle and speed)
 					} else if (areaOfCollision > -5) {
 						//middle (set 90 degree angle reset speed)
 						newAngle = (Math.PI * 3) /2;
-						newSpeed = ballSpeed;
+						newSpeed = this.baseSpeed;
 					} else if (areaOfCollision > -90) {
 						//right middle (variable angle and speed)
 						newAngle = Math.PI / 4;
-						newSpeed = ballSpeed + 2;
+						newSpeed = this.baseSpeed + 2;
 					} else {
 						//rigth side (set angle and speed)
 						newAngle = Math.PI / 6;
-						newSpeed = ballSpeed + 4;
+						newSpeed = this.baseSpeed + 4;
 					}
 
-					this.speed = newSpeed;
+					this.currentSpeed = newSpeed;
 					this.angle = newAngle;
-					this.dx = Math.cos(this.angle) * this.speed;
-					this.dy = -Math.abs(Math.sin(this.angle) * this.speed);
+					this.dx = Math.cos(this.angle) * this.currentSpeed;
+					this.dy = -Math.abs(Math.sin(this.angle) * this.currentSpeed);
 
 				} else {					
 					this.dy = -this.dy;
@@ -505,8 +505,8 @@ class Fountain {
 
 
 //#### PHYSICS #####
-function clamp(val, min, max) {
-	return Math.min(max, Math.max(min, val));
+function randRange(min, max) {
+	return (Math.random() * (max - min)) + min;
 }
 
 function detectCollisions() {
@@ -564,10 +564,11 @@ function onDeath() {
 function checkLevelWinStatus() {
 	//Check if any of the bricks are visible and change to next level
 	if(!bricksArray.some(elem => elem.isVisible())) {
-		currentLevel += 1;
-		buildBricks(LEVELS[currentLevel]);
-		isClamped = true;
-		initBoard();
+		currentLevel += 1; //cue up next map
+		ball.baseSpeed += 0.5; //slowly turn up the volume on these points addicts!
+		buildBricks(LEVELS[currentLevel]); //load next map
+		isClamped = true; // keep ball attached to paddle until spacebar is pressed
+		initBoard(); //get this party started
 	}
 }
 
@@ -582,6 +583,11 @@ function cls() {
 	ctx.fillRect(0,0, canvas.width, canvas.height);		
 }
 
+function write(text, font, size, startX, startY, fillStyle) {
+	ctx.font = size + " " + font;
+	ctx.fillStyle = fillStyle;
+	ctx.fillText(text, startX, startY, width)
+}
 
 //#### EVENT LISTENER CALLBACKS ####
 handleKeyDown = (event) => {
@@ -699,22 +705,15 @@ buildBricks(LEVELS[currentLevel]);
 initBoard();
 
 
-function write(text, font, size, startX, startY, fillStyle) {
-	ctx.font = size + " " + font;
-	ctx.fillStyle = fillStyle;
-	ctx.fillText(text, startX, startY, width)
-}
 
 
 //TODOS:
 
-//Keep ball stationary and clamped to the paddle until initial space bar press
+//fix clamp formula
 
-//Add in score (should also add slow speed increase so I can reuse levels)
+//Start Screen
 
-//Display text
+// add slow speed increase so I can reuse levels)
 
-//Render GAME OVER SCREEN with final score (maybe have a different animation background)
-//fireworks, 3d space, ripple effects
 
 //Handle Mouse input correctly
