@@ -564,7 +564,7 @@ function onDeath() {
 function checkLevelWinStatus() {
 	//Check if any of the bricks are visible and change to next level
 	if(!bricksArray.some(elem => elem.isVisible())) {
-		currentLevel += 1; //cue up next map
+		currentLevel = currentLevel < LEVELS.length - 1 ? currentLevel + 1 : 0; //cue up next map (or restart cycle)
 		ball.baseSpeed += 0.5; //slowly turn up the volume on these points addicts!
 		buildBricks(LEVELS[currentLevel]); //load next map
 		isClamped = true; // keep ball attached to paddle until spacebar is pressed
@@ -709,11 +709,7 @@ initBoard();
 
 //TODOS:
 
-//fix clamp formula
 
 //Start Screen
-
-// add slow speed increase so I can reuse levels)
-
 
 //Handle Mouse input correctly
