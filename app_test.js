@@ -3,9 +3,10 @@ const canvasHeight = 400;
 
 
 let canvas = document.getElementById("gameCanvas");
-canvas.width = canvasWidth;
-canvas.height = canvasHeight;
+let width = canvas.width = canvasWidth;
+let height = canvas.height = canvasHeight;
 let ctx = canvas.getContext("2d");
+let animationFrameId;
 
 //##### GAME STATE HANDLERS #####
 let rightPressed = false;
@@ -14,12 +15,11 @@ let isPaused = false;
 let isDead = false;
 let gameOver = false;
 
-//##### VARIABLES ######
+let playerLives = 3; //TODO Decide how to track player info, implement reset and gameover and level advance correctly
+let currentLevel = 1;
+let bricksArray = [];
 
-//TODO Decide how to track player info, implement reset and gameover and level advance correctly
-let playerLives = 3;
-let currentLevel = 4;
-
+//##### CONSTANTS ######
 
 const paddleSpeed =8;
 const paddleWidth = 100;
@@ -38,8 +38,6 @@ const brickWidth = 75;
 const brickHeight = 20;
 const brickHealth = 1;
 const brickColor = "green";
-
-const bricksArray = [];
 
 const LEVELS = [
 	{
@@ -98,6 +96,13 @@ const LEVELS = [
 		offsetLeft: 30
 	}
 ]
+
+//#### GAMEOVER SCREEN VARIABLES ####
+const DAMPING = 0.9999;
+const FPS = 35;
+const INTERVAL = 1000 / FPS;
+let drops = [];
+let then = Date.now()
 
 
 //#### CLASS DEFINITIONS ####
@@ -231,8 +236,8 @@ class Ball {
 		this.x = ballStartX;
 		this.y = ballStartY;
 		this.speed = ballSpeed;
-		this.angle = Math.random() * Math.PI * 2;
-		this.angle = clamp(this.angle, (Math.PI * 3) / 4, Math.PI / 4)
+		const newAngle = Math.random() * Math.PI * 2;
+		this.angle = clamp(newAngle, (Math.PI * 3) / 4, Math.PI / 4)
 		this.dx = Math.cos(this.angle) * ballSpeed;
 		this.dy = Math.sin(this.angle) * ballSpeed;
 	}
@@ -328,6 +333,29 @@ class Ball {
 	}
 }
 
+//#### BRICK LOGIC #####
+function buildBricks(level) {
+	bricksArray = []; //clear old bricks out
+	for (let r = 0; r < level.board.length; r++) {
+		for(let c = 0; c < level.board[r].length; c++) {
+			const brickX = (c *(brickWidth + level.padding)) + level.offsetLeft;
+			const brickY = (r * (brickHeight + level.padding)) + level.offsetTop;
+			const brickHealth = level.board[r][c];
+			let brick = new Brick(brickHealth, brickX, brickY, brickWidth, brickHeight, brickColor)
+			brick.render();
+			bricksArray.push(brick);
+		}
+	}
+}
+
+function renderBricks(bricksArray) {
+	for (let i = 0; i < bricksArray.length; i++) {
+		bricksArray[i].render();
+	}
+}
+
+
+//#### STARFIELD ####
 class Star  {
 	constructor(x, y, size, vel, color) {
 		this.x = x,
@@ -389,33 +417,86 @@ class Starfield {
 			}
 		}
 	}
-
 }
 
+//#### FIREWORKS ####
+class Drop {
+	constructor(x, y, color) {
+		this.x = x,
+		this.y = y,
+		this.color = color;
+		this.prevX = x,
+		this.prevY = y
+	}
 
-//#### BRICK LOGIC #####
-function buildBricks(level) {
-	for (let r = 0; r < level.board.length; r++) {
-		for(let c = 0; c < level.board[r].length; c++) {
-			const brickX = (c *(brickWidth + level.padding)) + level.offsetLeft;
-			const brickY = (r * (brickHeight + level.padding)) + level.offsetTop;
-			const brickHealth = level.board[r][c];
-			let brick = new Brick(brickHealth, brickX, brickY, brickWidth, brickHeight, brickColor)
-			brick.render();
-			bricksArray.push(brick);
+	newVel() {
+		let velX = this.x - this.prevX;
+		let velY = this.y - this.prevY;
+		this.prevX = this.x;
+		this.prevY = this.y;
+		this.x += velX * DAMPING;
+		this.y += velY * DAMPING;
+	}
+
+	move(x, y) {
+		this.x += x;
+		this.y += y;
+	}
+
+	bounce() {
+		if (this.y > height) {
+			let velY = this.y - this.prevY;
+			this.prevY = height;
+			this.y = this.prevY - velY * 0.3;
 		}
 	}
-}
 
-function renderBricks(bricksArray) {
-	for (let i = 0; i < bricksArray.length; i++) {
-		bricksArray[i].render();
+	render() {
+		ctx.strokeStyle = this.color;
+		ctx.lineWidth = 3;
+		ctx.beginPath();
+		ctx.moveTo(this.prevX, this.prevY);
+		ctx.lineTo(this.x, this.y);
+		ctx.stroke();
 	}
 }
 
+class Fountain {
+	constructor(x, y, color, gravity = 0.3, maxCount = 200) {
+		this.drops = [];
+		this.count = 0;
+		this.maxCount = maxCount;
+		this.gravity = gravity;
+		this.x = x;
+		this.y = y;
+		this.color = color;
+	}
 
-//#### STARFIELD ####
+	newDrop() {
+		let drop = new Drop(this.x, this.y, this.color);
+		drop.move(Math.random() * 4 - 2, Math.random() * -2 -15);			
+		this.drops.push(drop);	
+		this.count += 1;			
+	}
 
+	renderDrop(drop) {
+		drop.move(0, this.gravity);
+		drop.newVel();
+		drop.bounce();
+		drop.render();
+	}
+
+	render() {
+		this.newDrop();
+		for(let i = 0; i < this.drops.length; i++) {
+			this.renderDrop(this.drops[i]);
+		}
+		if(this.count > this.maxCount) {
+			this.drops.shift();
+			this.count -= 1;
+		}			
+	}
+}
 
 
 //#### PHYSICS #####
@@ -427,6 +508,7 @@ function detectCollisions() {
 	//Check collisions with bottom of screen
 	if (ball.y + ball.radius >= canvasHeight) {
 		isDead = true;
+		onDeath();
 	}
 
 	//Check collisions with Bricks
@@ -458,21 +540,32 @@ function detectCollisions() {
 }
 
 //##### GAME LOGIC ####
-// function onDeath() {
-// //TODO: Function to handle onDeath 
-// //Check if lives remaining
-// //if yes Reset level
-// //if no set gameOver to true
+function onDeath() {
+//TODO: Function to handle onDeath 
+//Check if lives remaining
+//if yes Reset level
+//if no set gameOver to true
+	if(playerLives > 0) {
+		if(animationFrameId !== null){
+			cancelAnimationFrame(animationFrameId);
+		}
+		playerLives -= 1;
+		isDead = false;
+		initBoard();		
+	} else {
+		cancelAnimationFrame(animationFrameId)
+		gameOverScreen();
+	}
 	
-// }
+}
 
-// function checkLevelWinStatus() {
-// 	//Check if any of the bricks are visible and change to next level
-// 	if(!bricksArray.some(elem => elem.isVisible())) {
-// 		currentLevel += 1;
-// 		initBoard();
-// 	}
-// }
+function checkLevelWinStatus() {
+	//Check if any of the bricks are visible and change to next level
+	if(!bricksArray.some(elem => elem.isVisible())) {
+		currentLevel += 1;
+		initBoard();
+	}
+}
 
 function initBoard() {
 	paddle.reset();
@@ -523,7 +616,7 @@ document.addEventListener('keyup', handleKeyUp, false);
 
 //#### MAIN GAME LOOP ####
 function draw() {
-	if(!isPaused) {
+		if(!isPaused) {
 		//CLEAR SCREEN
 		// ctx.clearRect(0,0,canvas.width, canvas.height);
 		cls();
@@ -537,17 +630,47 @@ function draw() {
 		};
 
 		//RENDER
-		detectCollisions();
 		starField.renderStars();
 		starField.updatePositions();
 		renderBricks(bricksArray);
 		ball.render();
 		paddle.render();
+		detectCollisions();
 
 		//CHECK VICTORY CONDITIONS
-		// checkLevelWinStatus();
+		checkLevelWinStatus();
 	}
-	requestAnimationFrame(draw);
+	animationFrameId = requestAnimationFrame(draw);
+}
+
+function gameOverScreen() {
+	function frame () {
+		cancelAnimationFrame(animationFrameId)
+		animationFrameId = requestAnimationFrame(frame);
+		let now = Date.now();
+		let delta = now - then;
+
+		if (delta > INTERVAL) {
+			then = now - (delta % INTERVAL);
+			cls();
+			fountainLeft.render();
+			fountainMiddleLeft.render();
+			fountainMiddle.render();
+			fountainMiddleRight.render();
+			fountainRight.render();
+		}
+	}
+
+
+
+	let fountainLeft = new Fountain(width * 0.2, height, '#0099FF', 0.3, 150);
+	let fountainMiddleLeft = new Fountain(width * 0.4, height, 'yellow', 0.55, 100);
+	let fountainMiddle = new Fountain(width * 0.5, height, 'red', 0.7, 50);
+	let fountainMiddleRight = new Fountain(width * 0.6, height, 'yellow', 0.55, 100);
+	let fountainRight = new Fountain(width * 0.8, height, "#0099FF", 0.3, 150);
+
+	frame();
+
 }
 
 //#### INIT GAME OBJECTS ####
@@ -560,14 +683,18 @@ const starField = new Starfield(100);
 //#### INIT GAME ####
 initBoard();
 
-
 //TODOS:
 // Death and life check
 // Restart same level
 // Game Over 
+
+//Keep ball stationary and clamped to the paddle until initial space bar press
 
 //Add in score (should also add slow speed increase so I can reuse levels)
 
 //Fix issue with next level
 
 //Display text
+
+//Render GAME OVER SCREEN with final score (maybe have a different animation background)
+//fireworks, 3d space, ripple effects
