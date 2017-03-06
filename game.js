@@ -1,7 +1,6 @@
 const canvasWidth = 650;
 const canvasHeight = 400;
 
-
 let canvas = document.getElementById("gameCanvas");
 let width = canvas.width = canvasWidth;
 let height = canvas.height = canvasHeight;
@@ -37,17 +36,6 @@ const brickHealth = 1;
 const brickColor = "green";
 
 const LEVELS = [
-	// {
-	// 	board:[
-	// 		[0,0,0,0,0,0,0],
-	// 		[0,0,0,0,0,1,0],
-	// 		[0,0,0,0,0,0,0],
-	// 		[0,0,0,0,0,0,0],
-	// 	],
-	// 	padding: 10,
-	// 	offsetTop: 30,
-	// 	offsetLeft: 30
-	// },
 	{
 		board:[
 			[1,1,1,1,1,1,1],
@@ -261,7 +249,7 @@ function startScreen() {
 		if(animationFrameId) {
 			cancelAnimationFrame(animationFrameId)
 		};
-
+		cls();
 		animationFrameId = requestAnimationFrame(render);
 		write('BREAKOUT', 'paralines', '120px', 60, 175, drawRainbowGrad())
 		write('Press SPACEBAR to begin', 'Times New Roman', '20px', 220, 240, 'white')
@@ -286,7 +274,7 @@ function startScreen() {
 }
 
 function gameScreen() {
-	let playerLives = 2; //TODO Decide how to track player info, implement reset and gameover and level advance correctly
+	let playerLives = 2;
 	let playerScore = 0;
 	let currentLevel = 0;
 	let bricksArray = [];
@@ -372,16 +360,6 @@ function gameScreen() {
 				}
 			}
 		}
-		//if I want to implement a jump feature
-		// moveY(distance) {
-		// 	if (this.y + this.height > canvas.height - distance ) {
-		// 		this.y = canvas.height - this.height;
-		// 	} else if (this.y < 0 - distance) {
-		// 		this.y = 0;
-		// 	} else {
-		// 		this.y += distance;
-		// 	}
-		// }
 
 		reset() {
 			this.x = paddleStartX;
@@ -449,8 +427,6 @@ function gameScreen() {
 		}
 
 		collide(object) {
-
-			//WARNING This doesn't work with corner collisions
 
 			//Return the ball to position prior to collision
 			const lastX = this.x - this.dx;
@@ -706,8 +682,8 @@ function gameOverScreen(playerScore) {
 		}
 
 		newVel() {
-			let velX = this.x - this.prevX;
-			let velY = this.y - this.prevY;
+			const velX = this.x - this.prevX;
+			const velY = this.y - this.prevY;
 			this.prevX = this.x;
 			this.prevY = this.y;
 			this.x += velX * DAMPING;
@@ -721,7 +697,7 @@ function gameOverScreen(playerScore) {
 
 		bounce() {
 			if (this.y > height) {
-				let velY = this.y - this.prevY;
+				const velY = this.y - this.prevY;
 				this.prevY = height;
 				this.y = this.prevY - velY * 0.3;
 			}
@@ -806,18 +782,16 @@ function gameOverScreen(playerScore) {
 }
 
 
-
-
-
-
 //TODOS:
 
 
-//Start Screen
-
 //fix paddle side collisions
 //change collision handling to have two separate functions for ball instead of nested ifs
+//stop it from being able to go at almost parallel angles (and slow down when it happens)
 
 //fix brick collisions
+
+//add audio
+//add text to indicate SPACEBAR for pause
 
 //Handle Mouse input correctly

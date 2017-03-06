@@ -1,12 +1,5 @@
-// @font-face {
-//   font-family: 'paralines';
-//   src: url('Paralines.otf');
-//   font-weight: normal;
-//   font-style: normal;
-// }
-
 @font-face {
-    font-family: 'paralinesregular';
+    font-family: 'paralines';
     src: url('paralines-webfont.woff2') format('woff2'),
          url('paralines-webfont.woff') format('woff');
     font-weight: normal;
