@@ -14,11 +14,7 @@ let leftPressed = false;
 let isPaused = false; 
 let isClamped = true;
 let gameOver = false;
-
-let playerLives = 2; //TODO Decide how to track player info, implement reset and gameover and level advance correctly
-let playerScore = 0;
-let currentLevel = 0;
-let bricksArray = [];
+let currentScreen = 'start';
 
 //##### CONSTANTS ######
 
@@ -98,295 +94,6 @@ const LEVELS = [
 	}
 ]
 
-//#### GAMEOVER SCREEN VARIABLES ####
-const DAMPING = 0.9999;
-const FPS = 35;
-const INTERVAL = 1000 / FPS;
-let drops = [];
-let then = Date.now()
-
-
-//#### CLASS DEFINITIONS ####
-class Rect {
-	constructor(x = 0, y = 0, width = 100, height = 20, color = "purple") {
-		this.x = x;
-		this.y = y;
-		this.width = width;
-		this.height = height;
-		this.color = color;
-	}
-
-	drawFillRect(startx, starty, width, height, color = "#000000"){
-		ctx.beginPath();
-		ctx.rect(startx, starty, width, height);
-		ctx.fillStyle = color;
-		ctx.fill();
-		ctx.closePath();
-	}	
-}
-
-class Brick extends Rect {
-	constructor(health, x, y, width, height, color) {
-		super(x, y, width, height, color);
-		this.type = 'brick';
-		this.health = health;
-	}
-
-	takeDamage(damage = 1) {
-		this.health -= damage;
-		playerScore += 1;
-	}
-
-	isVisible() {
-		return this.health ? true : false;
-	}
-
-	getColor(health) {
-		const colors = ['green', 'orange', 'purple', 'red'];
-		return colors[health - 1];
-	}
-
-	render() {
-		if(this.health > 0) {
-			this.drawFillRect(this.x, this.y, this.width, this.height, this.getColor(this.health))
-		}
-	}
-}
-
-class Paddle extends Rect {
-	constructor(x, y, width, height, color) {
-		super(x, y, width, height, color);
-		this.type = 'paddle';
-	}
-
-	moveX(distance) {
-
-		// //not quite functioning test 
-		// if(
-		// 	ball.x + ball.radius > paddle.x 
-		// 	&& ball.x - ball.radius < paddle.x + paddle.width 
-		// 	&& ball.y + ball.radius > paddle.y 
-		// 	&& ball.y - ball.radius < paddle.y + paddle.height
-		// ) {
-		// 	//change direction of ball
-		// 	ball.collide(paddle);
-		// 	// ball.x += distance;
-		// }
-
-
-		if (this.x + this.width > canvas.width - distance ) {
-			this.x = canvas.width - this.width;
-		} else if (this.x < 0 - distance) {
-			this.x = 0;
-		} else {
-			if (ball.y + ball.radius < paddleStartY) {
-				this.x += distance;				
-			}
-			if(isClamped) {
-				ball.x += distance;
-			}
-		}
-	}
-	//if I want to implement a jump feature
-	// moveY(distance) {
-	// 	if (this.y + this.height > canvas.height - distance ) {
-	// 		this.y = canvas.height - this.height;
-	// 	} else if (this.y < 0 - distance) {
-	// 		this.y = 0;
-	// 	} else {
-	// 		this.y += distance;
-	// 	}
-	// }
-
-	reset() {
-		this.x = paddleStartX;
-		this.y = paddleStartY;
-	}
-
-	render() {
-		this.drawFillRect(this.x, this.y, this.width, this.height, this.color)
-	}
-
-}
-
-class Ball {
-	constructor(x = 0, y = 0, radius = 20, start = 0, end = Math.PI * 2, color = "purple", direction = false) {
-		this.type = 'ball';
-		this.x = x;
-		this.y = y;
-		this.baseSpeed = ballSpeed;
-		this.currentSpeed = this.baseSpeed;
-		this.angle = randRange((Math.PI * 3) / 4, Math.PI / 4);
-		this.dx = Math.cos(this.angle) * this.currentSpeed;
-		this.dy = -Math.abs(Math.sin(this.angle) * this.currentSpeed);
-		this.radius = radius;
-		this.start = start;
-		this.end = end;
-		this.color = color;
-		this.direction = direction;
-	}
-
-	moveX() {
-		if(!isClamped){
-			if (this.x + this.radius > canvas.width - this.dx ) {
-				this.x = canvas.width - this.radius;
-				this.dx = -this.dx;
-			} else if (this.x - this.radius < 0 - this.dx) {
-				this.x = this.radius;
-				this.dx = -this.dx;
-			} else {
-				this.x += this.dx;
-			}
-		}
-	}
-
-	moveY() {
-		if(!isClamped) {
-			if (this.y + this.radius > canvas.height - this.dy ) {
-				this.y = canvas.height - this.radius;
-				this.dy = -this.dy;
-			} else if (this.y - this.radius < 0 - this.dy) {
-				this.y = this.radius;
-				this.dy = -this.dy;
-			} else {
-				this.y += this.dy;
-			}			
-		}
-	}
-
-	reset() {
-		this.x = ballStartX;
-		this.y = ballStartY;
-		this.currentSpeed = this.baseSpeed;
-		this.angle = randRange((Math.PI * 3) / 4, Math.PI / 4);
-		this.dx = Math.cos(this.angle) * this.currentSpeed;
-		this.dy = -Math.abs(Math.sin(this.angle) * this.currentSpeed);
-	}
-
-	collide(object) {
-
-		//WARNING This doesn't work with corner collisions
-
-		//Return the ball to position prior to collision
-		const lastX = this.x - this.dx;
-		const lastY = this.y - this.dy;
-
-		//Is the ball above or below the object?
-		if(lastX > object.x - ballRadius && lastX < object.x + object.width + ballRadius) { // margin of error to avoid corner issues
-			//Is the ball above? 
-			if(lastY < object.y) {
-				//If object.type = 'paddle', determine where on paddle it hits and adjust angle
-				if (object.type === 'paddle'){
-
-					//Fun FACTS
-					//if this.dx is positive, this is coming from the left
-					//if this.dx is negative, this is coming from the right
-					const paddleCenter = object.x + (object.width / 2);
-					const distanceFromCenter = paddleCenter - this.x;
-					const areaOfCollision = distanceFromCenter / (object.width / 2) * 100;
-
-					//Divide paddle into 6, middle 2 are simple reflection
-					let newAngle, newSpeed;					
-
-					if (areaOfCollision > 95) {
-						newAngle =(Math.PI * 5) / 6;
-						console.log("left corner ", newAngle)
-						newSpeed = this.baseSpeed + 4;
-						//left side (set angle and speed)
-					}  else if (areaOfCollision > 5) {
-						newAngle = (Math.PI * (areaOfCollision / 100)) - (Math.PI * 3 / 2);
-						console.log("middle left ", newAngle)
-						newAngle = withinRange(newAngle, -4.5, -2);
-						console.log("ranged ", newAngle)
-						newSpeed = this.baseSpeed + 2;
-						//left middle (variable angle and speed)
-					} else if (areaOfCollision > -5) {
-						//middle (set 90 degree angle reset speed)
-						newAngle = (Math.PI * 3) /2;
-						newSpeed = this.baseSpeed;
-					} else if (areaOfCollision > -95) {
-						//right middle (variable angle and speed)
-						newAngle = (Math.PI * (areaOfCollision / -100)) + (Math.PI * 3 / 2);
-						console.log("middle right ", newAngle)
-						newAngle = withinRange(newAngle, 4.8, 6.75);
-						console.log("adjusted ", newAngle)
-						newSpeed = this.baseSpeed + 2;
-					} else {
-						//rigth side (set angle and speed)
-						newAngle = Math.PI / 6;
-						console.log("right corner ", newAngle)
-						newSpeed = this.baseSpeed + 4;
-					}
-
-					this.currentSpeed = newSpeed;
-					this.angle = newAngle;
-					this.dx = Math.cos(this.angle) * this.currentSpeed;
-					this.dy = -Math.abs(Math.sin(this.angle) * this.currentSpeed);
-
-				} else { //Collision from above
-					if(object.type === 'paddle') { //with paddle
-						this.dy = -this.dy;
-					} else { //with brick
-						this.x = lastX;
-						this.y = lastY;				
-						this.dy = -this.dy;						
-					}
-				}
-			} else { //collision with brick from below
-				this.x = lastX;
-				this.y = lastY;
-				this.dy = -this.dy;
-			}
-		} else {
-			//Is the ball on the left?
-			if(lastX < object.x) {
-				this.x = lastX;
-				this.y = lastY;				
-				this.dx = -this.dx;
-			} else {
-				this.x = lastX;
-				this.y = lastY;
-				this.dx = -this.dx;
-			}
-		}
-	}
-
-	drawFillArc(startx, starty, radius, start, end, color = "#000000", direction = false) {
-		ctx.beginPath();
-		ctx.arc(startx, starty, radius, start, end, direction);
-		ctx.fillStyle = color;
-		ctx.fill();
-		ctx.closePath();
-	}
-
-	render() {
-		this.drawFillArc(this.x, this.y, this.radius, this.start, this.end, this.color, this.direction);
-		this.moveX();
-		this.moveY();
-	}
-}
-
-//#### BRICK LOGIC #####
-function buildBricks(level) {
-	bricksArray = []; //clear old bricks out
-	for (let r = 0; r < level.board.length; r++) {
-		for(let c = 0; c < level.board[r].length; c++) {
-			const brickX = (c *(brickWidth + level.padding)) + level.offsetLeft;
-			const brickY = (r * (brickHeight + level.padding)) + level.offsetTop;
-			const brickHealth = level.board[r][c];
-			let brick = new Brick(brickHealth, brickX, brickY, brickWidth, brickHeight, brickColor)
-			brick.render();
-			bricksArray.push(brick);
-		}
-	}
-}
-
-function renderBricks(bricksArray) {
-	for (let i = 0; i < bricksArray.length; i++) {
-		bricksArray[i].render();
-	}
-}
-
 
 //#### STARFIELD ####
 class Star  {
@@ -451,87 +158,8 @@ class Starfield {
 	}
 }
 
-//#### FIREWORKS ####
-class Drop {
-	constructor(x, y, color) {
-		this.x = x,
-		this.y = y,
-		this.color = color;
-		this.prevX = x,
-		this.prevY = y
-	}
 
-	newVel() {
-		let velX = this.x - this.prevX;
-		let velY = this.y - this.prevY;
-		this.prevX = this.x;
-		this.prevY = this.y;
-		this.x += velX * DAMPING;
-		this.y += velY * DAMPING;
-	}
-
-	move(x, y) {
-		this.x += x;
-		this.y += y;
-	}
-
-	bounce() {
-		if (this.y > height) {
-			let velY = this.y - this.prevY;
-			this.prevY = height;
-			this.y = this.prevY - velY * 0.3;
-		}
-	}
-
-	render() {
-		ctx.strokeStyle = this.color;
-		ctx.lineWidth = 3;
-		ctx.beginPath();
-		ctx.moveTo(this.prevX, this.prevY);
-		ctx.lineTo(this.x, this.y);
-		ctx.stroke();
-	}
-}
-
-class Fountain {
-	constructor(x, y, color, gravity = 0.3, maxCount = 200) {
-		this.drops = [];
-		this.count = 0;
-		this.maxCount = maxCount;
-		this.gravity = gravity;
-		this.x = x;
-		this.y = y;
-		this.color = color;
-	}
-
-	newDrop() {
-		let drop = new Drop(this.x, this.y, this.color);
-		drop.move(Math.random() * 4 - 2, Math.random() * -2 -15);			
-		this.drops.push(drop);	
-		this.count += 1;			
-	}
-
-	renderDrop(drop) {
-		drop.move(0, this.gravity);
-		drop.newVel();
-		drop.bounce();
-		drop.render();
-	}
-
-	render() {
-		this.newDrop();
-		for(let i = 0; i < this.drops.length; i++) {
-			this.renderDrop(this.drops[i]);
-		}
-		if(this.count > this.maxCount) {
-			this.drops.shift();
-			this.count -= 1;
-		}			
-	}
-}
-
-
-//#### PHYSICS #####
+//#### MATH #####
 function randRange(min, max) {
 	return (Math.random() * (max - min)) + min;
 }
@@ -544,73 +172,6 @@ function withinRange(val, min, max) {
 	} else {
 		return val
 	}
-}
-
-function detectCollisions() {
-	//Check collisions with bottom of screen
-	if (ball.y + ball.radius >= canvasHeight) {
-		onDeath();
-	}
-
-	//Check collisions with Bricks
-	for (let i in bricksArray) {
-		const brick = bricksArray[i];
-		if(brick.isVisible()) {			
-			if(
-				ball.x + ball.radius > brick.x 
-				&& ball.x - ball.radius < brick.x + brick.width 
-				&& ball.y + ball.radius > brick.y 
-				&& ball.y - ball.radius < brick.y + brick.height
-			) {	
-				ball.collide(brick);
-				brick.takeDamage();
-			}
-		}				
-	}
-
-	//Check collisions with Paddle
-	if(
-		ball.x + ball.radius > paddle.x 
-		&& ball.x - ball.radius < paddle.x + paddle.width 
-		&& ball.y + ball.radius > paddle.y 
-		&& ball.y - ball.radius < paddle.y + paddle.height
-	) {
-		//change direction of ball
-		ball.collide(paddle);
-	}
-}
-
-//##### GAME LOGIC ####
-function onDeath() {
-	if(playerLives > 0) {
-		if(animationFrameId !== null){
-			cancelAnimationFrame(animationFrameId);
-		}
-		playerLives -= 1;
-		isClamped = true;
-		initBoard();		
-	} else {
-		cancelAnimationFrame(animationFrameId)
-		gameOverScreen();
-	}
-	
-}
-
-function checkLevelWinStatus() {
-	//Check if any of the bricks are visible and change to next level
-	if(!bricksArray.some(elem => elem.isVisible())) {
-		currentLevel = currentLevel < LEVELS.length - 1 ? currentLevel + 1 : 0; //cue up next map (or restart cycle)
-		ball.baseSpeed += 0.5; //slowly turn up the volume on these points addicts!
-		buildBricks(LEVELS[currentLevel]); //load next map
-		isClamped = true; // keep ball attached to paddle until spacebar is pressed
-		initBoard(); //get this party started
-	}
-}
-
-function initBoard() {
-	paddle.reset();
-	ball.reset();
-	draw();
 }
 
 function cls() {
@@ -631,10 +192,26 @@ handleKeyDown = (event) => {
 	} else if (event.keyCode === 37) {
 		leftPressed = true;
 	} else if (event.keyCode === 32) {
-		if(isClamped) {
-			isClamped = false;
-		} else{
-			isPaused = !isPaused;
+		switch (currentScreen){
+			case 'start':
+				//init game
+				isClamped = true;
+				gameScreen();
+				break;
+			case 'game':
+				if(isClamped) {
+					isClamped = false;
+				} else{
+					isPaused = !isPaused;
+				};
+				break;
+			case 'gameover':
+				//reset game
+				cancelAnimationFrame(animationFrameId)
+				currentScreen = 'start';
+				cls();
+				startScreen();
+				break;
 		}
 	}
 }
@@ -662,43 +239,10 @@ document.addEventListener('keydown', handleKeyDown, false);
 document.addEventListener('keyup', handleKeyUp, false);
 // document.addEventListener('mousemove', handleMouseMove, false);
 
+startScreen()
+
 //#### MAIN GAME LOOPS ####
-function draw() {
-
-	//Solves the speed up problem
-	if(animationFrameId) {
-		cancelAnimationFrame(animationFrameId)
-	}
-	animationFrameId = requestAnimationFrame(draw);
-		if(!isPaused) {
-
-		//CLEAR SCREEN
-		cls();
-
-		//HANDLE USER INPUT
-		if(leftPressed) {
-			paddle.moveX(-paddleSpeed);
-		};
-		if(rightPressed) {
-			paddle.moveX(paddleSpeed);
-		};
-
-		//RENDER
-		starField.renderStars();
-		starField.updatePositions();
-		renderBricks(bricksArray);
-		ball.render();
-		paddle.render();
-		write('Score: ' + playerScore + "   Lives: " + playerLives, 'arial', '10px', 5, 10, 'white')
-		detectCollisions();
-
-		//CHECK VICTORY CONDITIONS
-		checkLevelWinStatus();
-	}
-}
-
 function startScreen() {
-
 	let colorStops =[
 		{color:"#FF0000", stopPercent:0},
 		{color:"#FFFF00", stopPercent:.1},
@@ -714,9 +258,13 @@ function startScreen() {
 	];
 
 	function render() {
-		// requestAnimationFrame(render)
-		write('BREAKOUT', 'paralines', '85px', 120, 120, drawRainbowGrad())
-		write('Game Over', 'paralines', '85px', 120, 200, drawRainbowGrad())
+		if(animationFrameId) {
+			cancelAnimationFrame(animationFrameId)
+		};
+
+		animationFrameId = requestAnimationFrame(render);
+		write('BREAKOUT', 'paralines', '120px', 60, 175, drawRainbowGrad())
+		write('Press SPACEBAR to begin', 'Times New Roman', '20px', 220, 240, 'white')
 	}
 
 	function drawRainbowGrad() {
@@ -734,13 +282,498 @@ function startScreen() {
 		return gradient;
 	}
 
-	setInterval(render, 20);
+	render();
 }
 
+function gameScreen() {
+	let playerLives = 2; //TODO Decide how to track player info, implement reset and gameover and level advance correctly
+	let playerScore = 0;
+	let currentLevel = 0;
+	let bricksArray = [];
+
+	//#### CLASS DEFINITIONS ####
+	class Rect {
+		constructor(x = 0, y = 0, width = 100, height = 20, color = "purple") {
+			this.x = x;
+			this.y = y;
+			this.width = width;
+			this.height = height;
+			this.color = color;
+		}
+
+		drawFillRect(startx, starty, width, height, color = "#000000"){
+			ctx.beginPath();
+			ctx.rect(startx, starty, width, height);
+			ctx.fillStyle = color;
+			ctx.fill();
+			ctx.closePath();
+		}	
+	}
+
+	class Brick extends Rect {
+		constructor(health, x, y, width, height, color) {
+			super(x, y, width, height, color);
+			this.type = 'brick';
+			this.health = health;
+		}
+
+		takeDamage(damage = 1) {
+			this.health -= damage;
+			playerScore += 1;
+		}
+
+		isVisible() {
+			return this.health ? true : false;
+		}
+
+		getColor(health) {
+			const colors = ['green', 'orange', 'purple', 'red'];
+			return colors[health - 1];
+		}
+
+		render() {
+			if(this.health > 0) {
+				this.drawFillRect(this.x, this.y, this.width, this.height, this.getColor(this.health))
+			}
+		}
+	}
+
+	class Paddle extends Rect {
+		constructor(x, y, width, height, color) {
+			super(x, y, width, height, color);
+			this.type = 'paddle';
+		}
+
+		moveX(distance) {
+
+			// //not quite functioning test 
+			// if(
+			// 	ball.x + ball.radius > paddle.x 
+			// 	&& ball.x - ball.radius < paddle.x + paddle.width 
+			// 	&& ball.y + ball.radius > paddle.y 
+			// 	&& ball.y - ball.radius < paddle.y + paddle.height
+			// ) {
+			// 	//change direction of ball
+			// 	ball.collide(paddle);
+			// 	// ball.x += distance;
+			// }
 
 
+			if (this.x + this.width > canvas.width - distance ) {
+				this.x = canvas.width - this.width;
+			} else if (this.x < 0 - distance) {
+				this.x = 0;
+			} else {
+				if (ball.y + ball.radius < paddleStartY) {
+					this.x += distance;				
+				}
+				if(isClamped) {
+					ball.x += distance;
+				}
+			}
+		}
+		//if I want to implement a jump feature
+		// moveY(distance) {
+		// 	if (this.y + this.height > canvas.height - distance ) {
+		// 		this.y = canvas.height - this.height;
+		// 	} else if (this.y < 0 - distance) {
+		// 		this.y = 0;
+		// 	} else {
+		// 		this.y += distance;
+		// 	}
+		// }
 
-function gameOverScreen() {
+		reset() {
+			this.x = paddleStartX;
+			this.y = paddleStartY;
+		}
+
+		render() {
+			this.drawFillRect(this.x, this.y, this.width, this.height, this.color)
+		}
+
+	}
+
+	class Ball {
+		constructor(x = 0, y = 0, radius = 20, start = 0, end = Math.PI * 2, color = "purple", direction = false) {
+			this.type = 'ball';
+			this.x = x;
+			this.y = y;
+			this.baseSpeed = ballSpeed;
+			this.currentSpeed = this.baseSpeed;
+			this.angle = randRange((Math.PI * 3) / 4, Math.PI / 4);
+			this.dx = Math.cos(this.angle) * this.currentSpeed;
+			this.dy = -Math.abs(Math.sin(this.angle) * this.currentSpeed);
+			this.radius = radius;
+			this.start = start;
+			this.end = end;
+			this.color = color;
+			this.direction = direction;
+		}
+
+		moveX() {
+			if(!isClamped){
+				if (this.x + this.radius > canvas.width - this.dx ) {
+					this.x = canvas.width - this.radius;
+					this.dx = -this.dx;
+				} else if (this.x - this.radius < 0 - this.dx) {
+					this.x = this.radius;
+					this.dx = -this.dx;
+				} else {
+					this.x += this.dx;
+				}
+			}
+		}
+
+		moveY() {
+			if(!isClamped) {
+				if (this.y + this.radius > canvas.height - this.dy ) {
+					this.y = canvas.height - this.radius;
+					this.dy = -this.dy;
+				} else if (this.y - this.radius < 0 - this.dy) {
+					this.y = this.radius;
+					this.dy = -this.dy;
+				} else {
+					this.y += this.dy;
+				}			
+			}
+		}
+
+		reset() {
+			this.x = ballStartX;
+			this.y = ballStartY;
+			this.currentSpeed = this.baseSpeed;
+			this.angle = randRange((Math.PI * 3) / 4, Math.PI / 4);
+			this.dx = Math.cos(this.angle) * this.currentSpeed;
+			this.dy = -Math.abs(Math.sin(this.angle) * this.currentSpeed);
+		}
+
+		collide(object) {
+
+			//WARNING This doesn't work with corner collisions
+
+			//Return the ball to position prior to collision
+			const lastX = this.x - this.dx;
+			const lastY = this.y - this.dy;
+
+			//Is the ball above or below the object?
+			if(lastX > object.x - ballRadius && lastX < object.x + object.width + ballRadius) { // margin of error to avoid corner issues
+				//Is the ball above? 
+				if(lastY < object.y) {
+					//If object.type = 'paddle', determine where on paddle it hits and adjust angle
+					if (object.type === 'paddle'){
+
+						//Fun FACTS
+						//if this.dx is positive, this is coming from the left
+						//if this.dx is negative, this is coming from the right
+						const paddleCenter = object.x + (object.width / 2);
+						const distanceFromCenter = paddleCenter - this.x;
+						const areaOfCollision = distanceFromCenter / (object.width / 2) * 100;
+
+						//Divide paddle into 6, middle 2 are simple reflection
+						let newAngle, newSpeed;					
+
+						if (areaOfCollision > 95) {
+							newAngle =(Math.PI * 5) / 6;
+							console.log("left corner ", newAngle)
+							newSpeed = this.baseSpeed + 4;
+							//left side (set angle and speed)
+						}  else if (areaOfCollision > 5) {
+							newAngle = (Math.PI * (areaOfCollision / 100)) - (Math.PI * 3 / 2);
+							console.log("middle left ", newAngle)
+							newAngle = withinRange(newAngle, -4.5, -2);
+							console.log("ranged ", newAngle)
+							newSpeed = this.baseSpeed + 2;
+							//left middle (variable angle and speed)
+						} else if (areaOfCollision > -5) {
+							//middle (set 90 degree angle reset speed)
+							newAngle = (Math.PI * 3) /2;
+							newSpeed = this.baseSpeed;
+						} else if (areaOfCollision > -95) {
+							//right middle (variable angle and speed)
+							newAngle = (Math.PI * (areaOfCollision / -100)) + (Math.PI * 3 / 2);
+							console.log("middle right ", newAngle)
+							newAngle = withinRange(newAngle, 4.8, 6.75);
+							console.log("adjusted ", newAngle)
+							newSpeed = this.baseSpeed + 2;
+						} else {
+							//rigth side (set angle and speed)
+							newAngle = Math.PI / 6;
+							console.log("right corner ", newAngle)
+							newSpeed = this.baseSpeed + 4;
+						}
+
+						this.currentSpeed = newSpeed;
+						this.angle = newAngle;
+						this.dx = Math.cos(this.angle) * this.currentSpeed;
+						this.dy = -Math.abs(Math.sin(this.angle) * this.currentSpeed);
+
+					} else { //Collision from above
+						if(object.type === 'paddle') { //with paddle
+							this.dy = -this.dy;
+						} else { //with brick
+							this.x = lastX;
+							this.y = lastY;				
+							this.dy = -this.dy;						
+						}
+					}
+				} else { //collision with brick from below
+					this.x = lastX;
+					this.y = lastY;
+					this.dy = -this.dy;
+				}
+			} else {
+				//Is the ball on the left?
+				if(lastX < object.x) {
+					this.x = lastX;
+					this.y = lastY;				
+					this.dx = -this.dx;
+				} else {
+					this.x = lastX;
+					this.y = lastY;
+					this.dx = -this.dx;
+				}
+			}
+		}
+
+		drawFillArc(startx, starty, radius, start, end, color = "#000000", direction = false) {
+			ctx.beginPath();
+			ctx.arc(startx, starty, radius, start, end, direction);
+			ctx.fillStyle = color;
+			ctx.fill();
+			ctx.closePath();
+		}
+
+		render() {
+			this.drawFillArc(this.x, this.y, this.radius, this.start, this.end, this.color, this.direction);
+			this.moveX();
+			this.moveY();
+		}
+	}
+
+	//#### BRICK LOGIC #####
+	function buildBricks(level) {
+		bricksArray = []; //clear old bricks out
+		for (let r = 0; r < level.board.length; r++) {
+			for(let c = 0; c < level.board[r].length; c++) {
+				const brickX = (c *(brickWidth + level.padding)) + level.offsetLeft;
+				const brickY = (r * (brickHeight + level.padding)) + level.offsetTop;
+				const brickHealth = level.board[r][c];
+				let brick = new Brick(brickHealth, brickX, brickY, brickWidth, brickHeight, brickColor)
+				brick.render();
+				bricksArray.push(brick);
+			}
+		}
+	}
+
+	function renderBricks(bricksArray) {
+		for (let i = 0; i < bricksArray.length; i++) {
+			bricksArray[i].render();
+		}
+	}
+
+	//##### GAME LOGIC ####
+	function detectCollisions() {
+		//Check collisions with bottom of screen
+		if (ball.y + ball.radius >= canvasHeight) {
+			onDeath();
+		}
+
+		//Check collisions with Bricks
+		for (let i in bricksArray) {
+			const brick = bricksArray[i];
+			if(brick.isVisible()) {			
+				if(
+					ball.x + ball.radius > brick.x 
+					&& ball.x - ball.radius < brick.x + brick.width 
+					&& ball.y + ball.radius > brick.y 
+					&& ball.y - ball.radius < brick.y + brick.height
+				) {	
+					ball.collide(brick);
+					brick.takeDamage();
+				}
+			}				
+		}
+
+		//Check collisions with Paddle
+		if(
+			ball.x + ball.radius > paddle.x 
+			&& ball.x - ball.radius < paddle.x + paddle.width 
+			&& ball.y + ball.radius > paddle.y 
+			&& ball.y - ball.radius < paddle.y + paddle.height
+		) {
+			//change direction of ball
+			ball.collide(paddle);
+		}
+	}
+
+	function onDeath() {
+		if(playerLives > 0) {
+			if(animationFrameId !== null){
+				cancelAnimationFrame(animationFrameId);
+			}
+			playerLives -= 1;
+			isClamped = true;
+			initBoard();		
+		} else {
+			cancelAnimationFrame(animationFrameId)
+			currentScreen = 'gameover';
+			gameOverScreen(playerScore);
+		}
+		
+	}
+
+	function checkLevelWinStatus() {
+		//Check if any of the bricks are visible and change to next level
+		if(!bricksArray.some(elem => elem.isVisible())) {
+			currentLevel = currentLevel < LEVELS.length - 1 ? currentLevel + 1 : 0; //cue up next map (or restart cycle)
+			ball.baseSpeed += 0.5; //slowly turn up the volume on these points addicts!
+			buildBricks(LEVELS[currentLevel]); //load next map
+			isClamped = true; // keep ball attached to paddle until spacebar is pressed
+			initBoard(); //get this party started
+		}
+	}
+
+	function initBoard() {
+		paddle.reset();
+		ball.reset();
+		render();
+	}
+
+	function render() {
+
+		//Solves the speed up problem
+		if(animationFrameId) {
+			cancelAnimationFrame(animationFrameId)
+		}
+		animationFrameId = requestAnimationFrame(render);
+			if(!isPaused) {
+
+			//CLEAR SCREEN
+			cls();
+
+			//HANDLE USER INPUT
+			if(leftPressed) {
+				paddle.moveX(-paddleSpeed);
+			};
+			if(rightPressed) {
+				paddle.moveX(paddleSpeed);
+			};
+
+			//RENDER
+			starField.renderStars();
+			starField.updatePositions();
+			renderBricks(bricksArray);
+			ball.render();
+			paddle.render();
+			write('Score: ' + playerScore + "   Lives: " + playerLives, 'arial', '10px', 5, 10, 'white')
+			detectCollisions();
+
+			//CHECK VICTORY CONDITIONS
+			checkLevelWinStatus();
+		}
+	}
+
+
+	//#### INIT GAME OBJECTS ####
+	currentScreen = 'game';
+	let	paddle = new Paddle(paddleStartX, paddleStartY,  paddleWidth, paddleHeight, paddleColor)
+	let	ball = new Ball(ballStartX, ballStartY,  ballRadius, 0, Math.PI*2, ballColor)
+	const starField = new Starfield(100);
+
+	//#### INIT GAME ####
+	buildBricks(LEVELS[currentLevel]);
+	initBoard();
+}
+
+function gameOverScreen(playerScore) {
+
+	//#### GAMEOVER SCREEN VARIABLES ####
+	const DAMPING = 0.9999;
+	const FPS = 35;
+	const INTERVAL = 1000 / FPS;
+	let drops = [];
+	let then = Date.now()
+
+	//#### FIREWORKS ####
+	class Drop {
+		constructor(x, y, color) {
+			this.x = x,
+			this.y = y,
+			this.color = color;
+			this.prevX = x,
+			this.prevY = y
+		}
+
+		newVel() {
+			let velX = this.x - this.prevX;
+			let velY = this.y - this.prevY;
+			this.prevX = this.x;
+			this.prevY = this.y;
+			this.x += velX * DAMPING;
+			this.y += velY * DAMPING;
+		}
+
+		move(x, y) {
+			this.x += x;
+			this.y += y;
+		}
+
+		bounce() {
+			if (this.y > height) {
+				let velY = this.y - this.prevY;
+				this.prevY = height;
+				this.y = this.prevY - velY * 0.3;
+			}
+		}
+
+		render() {
+			ctx.strokeStyle = this.color;
+			ctx.lineWidth = 3;
+			ctx.beginPath();
+			ctx.moveTo(this.prevX, this.prevY);
+			ctx.lineTo(this.x, this.y);
+			ctx.stroke();
+		}
+	}
+
+	class Fountain {
+		constructor(x, y, color, gravity = 0.3, maxCount = 200) {
+			this.drops = [];
+			this.count = 0;
+			this.maxCount = maxCount;
+			this.gravity = gravity;
+			this.x = x;
+			this.y = y;
+			this.color = color;
+		}
+
+		newDrop() {
+			let drop = new Drop(this.x, this.y, this.color);
+			drop.move(Math.random() * 4 - 2, Math.random() * -2 -15);			
+			this.drops.push(drop);	
+			this.count += 1;			
+		}
+
+		renderDrop(drop) {
+			drop.move(0, this.gravity);
+			drop.newVel();
+			drop.bounce();
+			drop.render();
+		}
+
+		render() {
+			this.newDrop();
+			for(let i = 0; i < this.drops.length; i++) {
+				this.renderDrop(this.drops[i]);
+			}
+			if(this.count > this.maxCount) {
+				this.drops.shift();
+				this.count -= 1;
+			}			
+		}
+	}
+
 	function frame () {
 		cancelAnimationFrame(animationFrameId)
 		animationFrameId = requestAnimationFrame(frame);
@@ -750,6 +783,7 @@ function gameOverScreen() {
 		if (delta > INTERVAL) {
 			then = now - (delta % INTERVAL);
 			cls();
+			write('Press SPACEBAR to restart', 'Times New Roman', '15px', 240, 15, 'white') 
 			write('Game Over', 'paralines', '85px', 120, 120, 'green')
 			write('Score: ' + playerScore, 'paralines', '25px', 265, 180, 'yellow') //might need to change alignment
 			fountainLeft.render();
@@ -771,18 +805,7 @@ function gameOverScreen() {
 	frame();
 }
 
-//#### INIT GAME OBJECTS ####
-// let	paddle = new Paddle(paddleStartX, paddleStartY,  paddleWidth, paddleHeight, paddleColor)
-// let	ball = new Ball(ballStartX, ballStartY,  ballRadius, 0, Math.PI*2, ballColor)
-// const starField = new Starfield(100);
 
-
-
-//#### INIT GAME ####
-// buildBricks(LEVELS[currentLevel]);
-// initBoard();
-
-startScreen()
 
 
 
