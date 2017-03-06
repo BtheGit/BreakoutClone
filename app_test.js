@@ -278,11 +278,11 @@ class Ball {
 						newAngle =(Math.PI * 5) / 6;
 						newSpeed = ballSpeed + 4;
 						//left side (set angle and speed)
-					}  else if (areaOfCollision > 10) {
+					}  else if (areaOfCollision > 5) {
 						newAngle = (Math.PI * 3) / 4;
 						newSpeed = ballSpeed + 2;
 						//left middle (variable angle and speed)
-					} else if (areaOfCollision > -10) {
+					} else if (areaOfCollision > -5) {
 						//middle (set 90 degree angle reset speed)
 						newAngle = (Math.PI * 3) /2;
 						newSpeed = ballSpeed;
@@ -684,15 +684,25 @@ function gameOverScreen() {
 }
 
 //#### INIT GAME OBJECTS ####
-let	paddle = new Paddle(paddleStartX, paddleStartY,  paddleWidth, paddleHeight, paddleColor)
-let	ball = new Ball(ballStartX, ballStartY,  ballRadius, 0, Math.PI*2, ballColor)
-const starField = new Starfield(100);
+// let	paddle = new Paddle(paddleStartX, paddleStartY,  paddleWidth, paddleHeight, paddleColor)
+// let	ball = new Ball(ballStartX, ballStartY,  ballRadius, 0, Math.PI*2, ballColor)
+// const starField = new Starfield(100);
 
 
 
 //#### INIT GAME ####
-buildBricks(LEVELS[currentLevel]);
-initBoard();
+// buildBricks(LEVELS[currentLevel]);
+// initBoard();
+
+write('Hello World', 'paralines', '4em', 100, 100, 'white')
+
+function write(text, font, size, startX, startY, fillStyle) {
+	cls()
+	ctx.font = size + " " + font;
+	ctx.fillStyle = fillStyle;
+	ctx.fillText(text, startX, startY, width)
+}
+
 
 //TODOS:
 

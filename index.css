@@ -1,10 +1,28 @@
+// @font-face {
+//   font-family: 'paralines';
+//   src: url('Paralines.otf');
+//   font-weight: normal;
+//   font-style: normal;
+// }
+
+@font-face {
+  font-family: 'paralines';
+  font-style: normal;
+  src: url(Paralines.otf);
+}
+
 * {
 	padding: 0;
 	margin: 0;
 }
 
 canvas {
-	background: #EEE;
+	background: #000;
 	display: block;
 	margin: 0 auto;
+}
+
+.fonted {
+	font-family: 'georgia';
+	font-size: 100px;
 }
