@@ -16,7 +16,7 @@ let isDead = false; //currently unused
 let isClamped = true;
 let gameOver = false;
 
-let playerLives = 3; //TODO Decide how to track player info, implement reset and gameover and level advance correctly
+let playerLives = 2; //TODO Decide how to track player info, implement reset and gameover and level advance correctly
 let playerScore = 0;
 let currentLevel = 0;
 let bricksArray = [];
@@ -135,6 +135,7 @@ class Brick extends Rect {
 
 	takeDamage(damage = 1) {
 		this.health -= damage;
+		playerScore += 1;
 	}
 
 	isVisible() {
@@ -647,6 +648,7 @@ function draw() {
 		renderBricks(bricksArray);
 		ball.render();
 		paddle.render();
+		write('Score: ' + playerScore + "   Lives: " + playerLives, 'arial', '10px', 5, 10, 'white')
 		detectCollisions();
 
 		//CHECK VICTORY CONDITIONS
@@ -664,6 +666,8 @@ function gameOverScreen() {
 		if (delta > INTERVAL) {
 			then = now - (delta % INTERVAL);
 			cls();
+			write('Game Over', 'paralines', '85px', 120, 120, 'green')
+			write('Score: ' + playerScore, 'paralines', '25px', 265, 180, 'yellow') //might need to change alignment
 			fountainLeft.render();
 			fountainMiddleLeft.render();
 			fountainMiddleLeftB.render();
@@ -684,20 +688,18 @@ function gameOverScreen() {
 }
 
 //#### INIT GAME OBJECTS ####
-// let	paddle = new Paddle(paddleStartX, paddleStartY,  paddleWidth, paddleHeight, paddleColor)
-// let	ball = new Ball(ballStartX, ballStartY,  ballRadius, 0, Math.PI*2, ballColor)
-// const starField = new Starfield(100);
+let	paddle = new Paddle(paddleStartX, paddleStartY,  paddleWidth, paddleHeight, paddleColor)
+let	ball = new Ball(ballStartX, ballStartY,  ballRadius, 0, Math.PI*2, ballColor)
+const starField = new Starfield(100);
 
 
 
 //#### INIT GAME ####
-// buildBricks(LEVELS[currentLevel]);
-// initBoard();
+buildBricks(LEVELS[currentLevel]);
+initBoard();
 
-write('Hello World', 'paralines', '4em', 100, 100, 'white')
 
 function write(text, font, size, startX, startY, fillStyle) {
-	cls()
 	ctx.font = size + " " + font;
 	ctx.fillStyle = fillStyle;
 	ctx.fillText(text, startX, startY, width)
