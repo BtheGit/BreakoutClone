@@ -12,7 +12,6 @@ let animationFrameId;
 let rightPressed = false;
 let leftPressed = false;
 let isPaused = false; 
-let isDead = false; //currently unused
 let isClamped = true;
 let gameOver = false;
 
@@ -42,17 +41,17 @@ const brickHealth = 1;
 const brickColor = "green";
 
 const LEVELS = [
-	{
-		board:[
-			[0,0,0,0,0,0,0],
-			[0,0,0,0,0,1,0],
-			[0,0,0,0,0,0,0],
-			[0,0,0,0,0,0,0],
-		],
-		padding: 10,
-		offsetTop: 30,
-		offsetLeft: 30
-	},
+	// {
+	// 	board:[
+	// 		[0,0,0,0,0,0,0],
+	// 		[0,0,0,0,0,1,0],
+	// 		[0,0,0,0,0,0,0],
+	// 		[0,0,0,0,0,0,0],
+	// 	],
+	// 	padding: 10,
+	// 	offsetTop: 30,
+	// 	offsetLeft: 30
+	// },
 	{
 		board:[
 			[1,1,1,1,1,1,1],
@@ -161,27 +160,43 @@ class Paddle extends Rect {
 	}
 
 	moveX(distance) {
+
+		// //not quite functioning test 
+		// if(
+		// 	ball.x + ball.radius > paddle.x 
+		// 	&& ball.x - ball.radius < paddle.x + paddle.width 
+		// 	&& ball.y + ball.radius > paddle.y 
+		// 	&& ball.y - ball.radius < paddle.y + paddle.height
+		// ) {
+		// 	//change direction of ball
+		// 	ball.collide(paddle);
+		// 	// ball.x += distance;
+		// }
+
+
 		if (this.x + this.width > canvas.width - distance ) {
 			this.x = canvas.width - this.width;
 		} else if (this.x < 0 - distance) {
 			this.x = 0;
 		} else {
-			this.x += distance;
+			if (ball.y + ball.radius < paddleStartY) {
+				this.x += distance;				
+			}
 			if(isClamped) {
 				ball.x += distance;
 			}
 		}
 	}
-
-	moveY(distance) {
-		if (this.y + this.height > canvas.height - distance ) {
-			this.y = canvas.height - this.height;
-		} else if (this.y < 0 - distance) {
-			this.y = 0;
-		} else {
-			this.y += distance;
-		}
-	}
+	//if I want to implement a jump feature
+	// moveY(distance) {
+	// 	if (this.y + this.height > canvas.height - distance ) {
+	// 		this.y = canvas.height - this.height;
+	// 	} else if (this.y < 0 - distance) {
+	// 		this.y = 0;
+	// 	} else {
+	// 		this.y += distance;
+	// 	}
+	// }
 
 	reset() {
 		this.x = paddleStartX;
@@ -212,7 +227,7 @@ class Ball {
 	}
 
 	moveX() {
-		if(!isDead && !isClamped){
+		if(!isClamped){
 			if (this.x + this.radius > canvas.width - this.dx ) {
 				this.x = canvas.width - this.radius;
 				this.dx = -this.dx;
@@ -226,7 +241,7 @@ class Ball {
 	}
 
 	moveY() {
-		if(!isDead && !isClamped) {
+		if(!isClamped) {
 			if (this.y + this.radius > canvas.height - this.dy ) {
 				this.y = canvas.height - this.radius;
 				this.dy = -this.dy;
@@ -253,13 +268,11 @@ class Ball {
 		//WARNING This doesn't work with corner collisions
 
 		//Return the ball to position prior to collision
-		// this.x -= this.dx;
-		// this.y -= this.dy;
 		const lastX = this.x - this.dx;
 		const lastY = this.y - this.dy;
 
 		//Is the ball above or below the object?
-		if(lastX > object.x && lastX < object.x + object.width) {
+		if(lastX > object.x - ballRadius && lastX < object.x + object.width + ballRadius) { // margin of error to avoid corner issues
 			//Is the ball above? 
 			if(lastY < object.y) {
 				//If object.type = 'paddle', determine where on paddle it hits and adjust angle
@@ -273,27 +286,35 @@ class Ball {
 					const areaOfCollision = distanceFromCenter / (object.width / 2) * 100;
 
 					//Divide paddle into 6, middle 2 are simple reflection
-					let newAngle, newSpeed;
-					
-					if (areaOfCollision > 90) {
+					let newAngle, newSpeed;					
+
+					if (areaOfCollision > 95) {
 						newAngle =(Math.PI * 5) / 6;
+						console.log("left corner ", newAngle)
 						newSpeed = this.baseSpeed + 4;
 						//left side (set angle and speed)
 					}  else if (areaOfCollision > 5) {
-						newAngle = (Math.PI * 3) / 4;
+						newAngle = (Math.PI * (areaOfCollision / 100)) - (Math.PI * 3 / 2);
+						console.log("middle left ", newAngle)
+						newAngle = withinRange(newAngle, -4.5, -2);
+						console.log("ranged ", newAngle)
 						newSpeed = this.baseSpeed + 2;
 						//left middle (variable angle and speed)
 					} else if (areaOfCollision > -5) {
 						//middle (set 90 degree angle reset speed)
 						newAngle = (Math.PI * 3) /2;
 						newSpeed = this.baseSpeed;
-					} else if (areaOfCollision > -90) {
+					} else if (areaOfCollision > -95) {
 						//right middle (variable angle and speed)
-						newAngle = Math.PI / 4;
+						newAngle = (Math.PI * (areaOfCollision / -100)) + (Math.PI * 3 / 2);
+						console.log("middle right ", newAngle)
+						newAngle = withinRange(newAngle, 4.8, 6.75);
+						console.log("adjusted ", newAngle)
 						newSpeed = this.baseSpeed + 2;
 					} else {
 						//rigth side (set angle and speed)
 						newAngle = Math.PI / 6;
+						console.log("right corner ", newAngle)
 						newSpeed = this.baseSpeed + 4;
 					}
 
@@ -302,10 +323,16 @@ class Ball {
 					this.dx = Math.cos(this.angle) * this.currentSpeed;
 					this.dy = -Math.abs(Math.sin(this.angle) * this.currentSpeed);
 
-				} else {					
-					this.dy = -this.dy;
+				} else { //Collision from above
+					if(object.type === 'paddle') { //with paddle
+						this.dy = -this.dy;
+					} else { //with brick
+						this.x = lastX;
+						this.y = lastY;				
+						this.dy = -this.dy;						
+					}
 				}
-			} else {
+			} else { //collision with brick from below
 				this.x = lastX;
 				this.y = lastY;
 				this.dy = -this.dy;
@@ -509,10 +536,19 @@ function randRange(min, max) {
 	return (Math.random() * (max - min)) + min;
 }
 
+function withinRange(val, min, max) {
+	if(val > max) {
+		return max;
+	} else if (val < min) {
+		return min;
+	} else {
+		return val
+	}
+}
+
 function detectCollisions() {
 	//Check collisions with bottom of screen
 	if (ball.y + ball.radius >= canvasHeight) {
-		isDead = true;
 		onDeath();
 	}
 
@@ -551,7 +587,6 @@ function onDeath() {
 			cancelAnimationFrame(animationFrameId);
 		}
 		playerLives -= 1;
-		isDead = false;
 		isClamped = true;
 		initBoard();		
 	} else {
@@ -662,6 +697,49 @@ function draw() {
 	}
 }
 
+function startScreen() {
+
+	let colorStops =[
+		{color:"#FF0000", stopPercent:0},
+		{color:"#FFFF00", stopPercent:.1},
+		{color:"#00FF00", stopPercent:.2},
+		{color:"#0000FF", stopPercent:.3},
+		{color:"#FF00FF", stopPercent:.4},
+		{color:"#FF0000", stopPercent:.5},
+		{color:"#FF0000", stopPercent:.6},
+		{color:"#FF00FF", stopPercent:.7},
+		{color:"#0000FF", stopPercent:.8},
+		{color:"#00FF00", stopPercent:.9},
+		{color:"#FFFF00", stopPercent:1},
+	];
+
+	function render() {
+		// requestAnimationFrame(render)
+		write('BREAKOUT', 'paralines', '85px', 120, 120, drawRainbowGrad())
+		write('Game Over', 'paralines', '85px', 120, 200, drawRainbowGrad())
+	}
+
+	function drawRainbowGrad() {
+
+		let gradient = ctx.createLinearGradient(canvas.width /2, 0, canvas.width/2, 300)
+		for (let i = 0; i < colorStops.length; i++){
+			let tempColorStop = colorStops[i]
+			gradient.addColorStop(tempColorStop.stopPercent, tempColorStop.color);
+			tempColorStop.stopPercent += 0.003;
+			if(tempColorStop.stopPercent > 1) {
+				tempColorStop.stopPercent = 0;
+			}
+			colorStops[i] = tempColorStop;		
+		}
+		return gradient;
+	}
+
+	setInterval(render, 20);
+}
+
+
+
+
 function gameOverScreen() {
 	function frame () {
 		cancelAnimationFrame(animationFrameId)
@@ -694,15 +772,17 @@ function gameOverScreen() {
 }
 
 //#### INIT GAME OBJECTS ####
-let	paddle = new Paddle(paddleStartX, paddleStartY,  paddleWidth, paddleHeight, paddleColor)
-let	ball = new Ball(ballStartX, ballStartY,  ballRadius, 0, Math.PI*2, ballColor)
-const starField = new Starfield(100);
+// let	paddle = new Paddle(paddleStartX, paddleStartY,  paddleWidth, paddleHeight, paddleColor)
+// let	ball = new Ball(ballStartX, ballStartY,  ballRadius, 0, Math.PI*2, ballColor)
+// const starField = new Starfield(100);
 
 
 
 //#### INIT GAME ####
-buildBricks(LEVELS[currentLevel]);
-initBoard();
+// buildBricks(LEVELS[currentLevel]);
+// initBoard();
+
+startScreen()
 
 
 
@@ -711,5 +791,10 @@ initBoard();
 
 
 //Start Screen
+
+//fix paddle side collisions
+//change collision handling to have two separate functions for ball instead of nested ifs
+
+//fix brick collisions
 
 //Handle Mouse input correctly
