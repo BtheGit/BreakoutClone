@@ -487,6 +487,8 @@ function gameScreen() {
 						this.angle = newAngle;
 						this.dx = Math.cos(this.angle) * this.currentSpeed;
 						this.dy = -Math.abs(Math.sin(this.angle) * this.currentSpeed);
+						this.dy = withinRange(this.dy, -100, -3) //might fix horizontal reflection issue
+						console.log("dx " , this.dx, "dy ", this.dy)
 
 					} else { //Collision from above
 						if(object.type === 'paddle') { //with paddle
