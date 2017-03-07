@@ -791,6 +791,7 @@ function gameOverScreen(playerScore) {
 
 //TODOS:
 
+//add in support for major browser versions
 
 //fix paddle side collisions
 //change collision handling to have two separate functions for ball instead of nested ifs
