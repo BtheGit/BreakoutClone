@@ -7,6 +7,9 @@ let height = canvas.height = canvasHeight;
 let ctx = canvas.getContext("2d");
 let animationFrameId;
 
+// const SOUND_BOUNCE = new Audio('bounce.wav');
+// const SOUND_BREAK = new Audio('break.wav');
+
 //##### GAME STATE HANDLERS #####
 let rightPressed = false;
 let leftPressed = false;
@@ -308,6 +311,7 @@ function gameScreen() {
 		takeDamage(damage = 1) {
 			this.health -= damage;
 			playerScore += 1;
+			// this.health > 0 ? SOUND_BOUNCE.play() : SOUND_BREAK.play();
 		}
 
 		isVisible() {
@@ -580,6 +584,7 @@ function gameScreen() {
 		) {
 			//change direction of ball
 			ball.collide(paddle);
+			// SOUND_BOUNCE.play();
 		}
 	}
 
