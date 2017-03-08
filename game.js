@@ -170,9 +170,10 @@ function cls() {
 	ctx.fillRect(0,0, canvas.width, canvas.height);		
 }
 
-function write(text, font, size, startX, startY, fillStyle) {
+function write(text, font, size, startX, startY, fillStyle, textAlign = "start") {
 	ctx.font = size + " " + font;
 	ctx.fillStyle = fillStyle;
+	ctx.textAlign = textAlign;
 	ctx.fillText(text, startX, startY, width)
 }
 
@@ -650,6 +651,7 @@ function gameScreen() {
 			ball.render();
 			paddle.render();
 			write('Score: ' + playerScore + "   Lives: " + playerLives, 'arial', '10px', 5, 10, 'white')
+			write('Press SPACEBAR to pause', 'arial', '10px', canvasWidth - 5, 10, 'white', "right")
 			detectCollisions();
 
 			//CHECK VICTORY CONDITIONS
@@ -793,9 +795,7 @@ function gameOverScreen(playerScore) {
 
 //add in support for major browser versions
 
-//fix paddle side collisions
 //change collision handling to have two separate functions for ball instead of nested ifs
-//stop it from being able to go at almost parallel angles (and slow down when it happens)
 
 //fix brick collisions
 
