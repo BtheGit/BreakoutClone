@@ -237,16 +237,17 @@ startScreen()
 function startScreen() {
 	let colorStops =[
 		{color:"#FF0000", stopPercent:0},
-		{color:"#FFFF00", stopPercent:.1},
-		{color:"#00FF00", stopPercent:.2},
-		{color:"#0000FF", stopPercent:.3},
-		{color:"#FF00FF", stopPercent:.4},
-		{color:"#FF0000", stopPercent:.5},
-		{color:"#FF0000", stopPercent:.6},
-		{color:"#FF00FF", stopPercent:.7},
-		{color:"#0000FF", stopPercent:.8},
-		{color:"#00FF00", stopPercent:.9},
-		{color:"#FFFF00", stopPercent:1},
+		{color:"#FFFF00", stopPercent: 1/11},
+		{color:"#00FF00", stopPercent:2/11},
+		{color:"#0000FF", stopPercent:3/11},
+		{color:"#FF00FF", stopPercent:4/11},
+		{color:"#FF0000", stopPercent:5/11},
+		{color:"#FF0000", stopPercent:6/11},
+		{color:"#FF00FF", stopPercent:7/11},
+		{color:"#0000FF", stopPercent:8/11},
+		{color:"#00FF00", stopPercent:9/11},
+		{color:"#FFFF00", stopPercent:10/11},
+		{color:"#FF0000", stopPercent:1},
 	];
 
 	function render() {
@@ -255,8 +256,8 @@ function startScreen() {
 		};
 		cls();
 		animationFrameId = requestAnimationFrame(render);
-		write('BREAKOUT', 'paralines', '120px', 60, 175, drawRainbowGrad())
-		write('Press SPACEBAR to begin', 'Times New Roman', '20px', 220, 240, 'white')
+		write('BREAKOUT', 'paralines', '120px', canvasWidth /2, 175, drawRainbowGrad(), 'center')
+		write('Press SPACEBAR to begin', 'Times New Roman', '20px', canvasWidth / 2, 240, 'white', 'center')
 	}
 
 	function drawRainbowGrad() {
@@ -278,7 +279,7 @@ function startScreen() {
 }
 
 function gameScreen() {
-	let playerLives = 2;
+	let playerLives = 0;
 	let playerScore = 0;
 	let currentLevel = 0;
 	let bricksArray = [];
@@ -768,9 +769,9 @@ function gameOverScreen(playerScore) {
 		if (delta > INTERVAL) {
 			then = now - (delta % INTERVAL);
 			cls();
-			write('Press SPACEBAR to restart', 'Times New Roman', '15px', 240, 15, 'white') 
-			write('Game Over', 'paralines', '85px', 120, 120, 'green')
-			write('Score: ' + playerScore, 'paralines', '25px', 265, 180, 'yellow') //might need to change alignment
+			write('Press SPACEBAR to restart', 'Times New Roman', '15px', canvasWidth / 2, 15, 'white', 'center') 
+			write('Game Over', 'paralines', '85px', canvasWidth / 2, 120, 'green', 'center')
+			write('Score: ' + playerScore, 'paralines', '25px', canvasWidth / 2, 180, 'yellow', 'center') //might need to change alignment
 			fountainLeft.render();
 			fountainMiddleLeft.render();
 			fountainMiddleLeftB.render();
@@ -800,6 +801,5 @@ function gameOverScreen(playerScore) {
 //fix brick collisions
 
 //add audio
-//add text to indicate SPACEBAR for pause
 
 //Handle Mouse input correctly
