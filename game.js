@@ -103,12 +103,13 @@ class Star  {
 }
 
 class Starfield {
-	constructor(starCount) {
+	constructor(starCount, minVel = 15, maxVel = 30, color="#FFFFFF") {
 		this.starCount = starCount;
-		this.minVel = 15;
-		this.maxVel = 30;
+		this.minVel = minVel;
+		this.maxVel = maxVel;
 		this.fps = 30;
 		this.stars = this.generateStars();
+		this.color = color;
 	}
 
 	generateStars() {
@@ -119,7 +120,7 @@ class Starfield {
 				Math.random() * canvas.height, 
 				(Math.random() * 2) + 1,
 				(Math.random() * (this.maxVel - this.minVel)) + this.minVel, 
-				"#FFFFFF"
+				this.color
 			) 
 			starArray.push(star);
 		}
@@ -142,7 +143,7 @@ class Starfield {
 					0, 
 					(Math.random() * 2) + 1,
 					(Math.random() * (this.maxVel - this.minVel)) + this.minVel, 
-					"#FFFFFF"
+					this.color
 				) 
 			}
 		}
@@ -249,13 +250,17 @@ function startScreen() {
 		{color:"#FFFF00", stopPercent:10/11},
 		{color:"#FF0000", stopPercent:1},
 	];
+	const starField = new Starfield(100, 25, 75, '#222222');
 
 	function render() {
+		cls();
 		if(animationFrameId) {
 			cancelAnimationFrame(animationFrameId)
 		};
-		cls();
 		animationFrameId = requestAnimationFrame(render);
+			starField.renderStars();
+			starField.updatePositions();
+
 		write('BREAKOUT', 'paralines', '120px', canvasWidth /2, 175, drawRainbowGrad(), 'center')
 		write('Press SPACEBAR to begin', 'Times New Roman', '20px', canvasWidth / 2, 240, 'white', 'center')
 	}
@@ -274,12 +279,11 @@ function startScreen() {
 		}
 		return gradient;
 	}
-
 	render();
 }
 
 function gameScreen() {
-	let playerLives = 0;
+	let playerLives = 2;
 	let playerScore = 0;
 	let currentLevel = 0;
 	let bricksArray = [];
@@ -665,7 +669,7 @@ function gameScreen() {
 	currentScreen = 'game';
 	let	paddle = new Paddle(paddleStartX, paddleStartY,  paddleWidth, paddleHeight, paddleColor)
 	let	ball = new Ball(ballStartX, ballStartY,  ballRadius, 0, Math.PI*2, ballColor)
-	const starField = new Starfield(100);
+	const starField = new Starfield(100, 15, 30, "#DDDDDD");
 
 	//#### INIT GAME ####
 	buildBricks(LEVELS[currentLevel]);
