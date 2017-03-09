@@ -171,6 +171,11 @@ function cls() {
 	ctx.fillRect(0,0, canvas.width, canvas.height);		
 }
 
+function clsBlur() {
+	ctx.fillStyle = 'rgba(0,0,0, .5)';
+	ctx.fillRect(0,0, canvas.width, canvas.height);		
+}
+
 function write(text, font, size, startX, startY, fillStyle, textAlign = "start") {
 	ctx.font = size + " " + font;
 	ctx.fillStyle = fillStyle;
@@ -726,7 +731,7 @@ function gameScreen() {
 			if(!isPaused) {
 
 			//CLEAR SCREEN
-			cls();
+			clsBlur();
 
 			//HANDLE USER INPUT
 			if(leftPressed) {
