@@ -298,6 +298,10 @@ function gameScreen() {
 			this.color = color;
 		}
 
+		getColor() {
+			return this.color;
+		}
+
 		drawFillRect(startx, starty, width, height, color = "#000000"){
 			ctx.beginPath();
 			ctx.rect(startx, starty, width, height);
@@ -443,9 +447,12 @@ function gameScreen() {
 			const lastY = this.y - this.dy;
 
 			//Logic for cloudburst, determining where on ball impact occured
-			console.log(this.x, this.dx, lastX)
-			console.log(this.y, this.dy, lastY)
+			// console.log(this.x, this.dx, lastX)
+			// console.log(this.y, this.dy, lastY)
+			//for now will just use simple position, may not be noticeable
+
 			createBurst(this.x, this.y);
+
 
 
 			//Is the ball above or below the object?
@@ -500,7 +507,6 @@ function gameScreen() {
 						this.dx = Math.cos(this.angle) * this.currentSpeed;
 						this.dy = -Math.abs(Math.sin(this.angle) * this.currentSpeed);
 						this.dy = withinRange(this.dy, -100, -3) //might fix horizontal reflection issue
-						console.log("dx " , this.dx, "dy ", this.dy)
 
 					} else { //Collision from above
 						if(object.type === 'paddle') { //with paddle
@@ -550,26 +556,38 @@ function gameScreen() {
 		constructor(x, y, size, color = 'rgba(255,255,255,.3)') {
 			this.x = (Math.random() * 3 - 1) + x;
 			this.y = (Math.random() * 3 - 1) + y;
+			this.prevX = x;
+			this.prevY = y;
 			this.size = size;
-			this.dx = Math.random() * 3 - 1.5;
-			this.dy = Math.random() * 3 - 1.5;
-			this.gravity = 0.3;
+			this.dx = Math.random() * 4 - 2;
+			this.dy = Math.random() * 4 - 2;
+			// this.gravity = 0.3;
 			this.color = color;
-			this.life = 15;
+			this.life = 8;
+			this.DAMPING = 0.9999;
 		}
 
-		animate() {
-			this.x += this.dx;
-			this.y += this.dy;
+		//linear explosion
+		// animate() {
+		// 	// this.x += this.dx;
+		// 	// this.y += this.dy;
+		// 	this.life--
+		// }
+
+		//Optional to slow down particle over time
+		newVel() {
+			const velX = this.x - this.prevX;
+			const velY = this.y - this.prevY;
+			this.prevX = this.x;
+			this.prevY = this.y;
+			this.x += velX * this.DAMPING;
+			this.y += velY * this.DAMPING;
 			this.life--
 		}
 
-		newVel() {
-
-		}
-
 		render() {
-			this.animate();
+			// this.animate();
+			this.newVel();
 			ctx.fillStyle = this.color;
 			ctx.fillRect(this.x, this.y, this.size, this.size);
 		}
@@ -660,7 +678,7 @@ function gameScreen() {
 	}
 
 	function createBurst(x, y){
-		let cb = new CloudBurst(50, x, y, 3);	
+		let cb = new CloudBurst(40, x, y, 3);	
 		cb.emitBurst();
 		clouds.push(cb)
 	}	
@@ -721,15 +739,16 @@ function gameScreen() {
 			//RENDER
 			starField.renderStars();
 			starField.updatePositions();
+			//render clouds
+			for (let i = 0; i < clouds.length; i++){
+				clouds[i].render();
+			}	
 			renderBricks(bricksArray);
 			ball.render();
 			paddle.render();
 			write('Score: ' + playerScore + "   Lives: " + playerLives, 'arial', '10px', 5, 10, 'white')
 			write('Press SPACEBAR to pause', 'arial', '10px', canvasWidth - 5, 10, 'white', "right")
 			detectCollisions();
-			for (let i = 0; i < clouds.length; i++){
-				clouds[i].render();
-			}	
 			//CHECK VICTORY CONDITIONS
 			checkLevelWinStatus();
 		}
