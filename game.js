@@ -765,7 +765,8 @@ function gameScreen() {
 	let clouds = []
 	let	paddle = new Paddle(paddleStartX, paddleStartY,  paddleWidth, paddleHeight, paddleColor)
 	let	ball = new Ball(ballStartX, ballStartY,  ballRadius, 0, Math.PI*2, ballColor)
-	const starField = new Starfield(100, 15, 30, "#DDDDDD");
+	const starField = new Starfield(70, 8, 25, "rgba(255,255,255,.2)");
+	// const starField = new Starfield(100, 15, 30, "#DDDDDD");
 
 	//#### INIT GAME ####
 	buildBricks(LEVELS[currentLevel]);
