@@ -167,7 +167,7 @@ function withinRange(val, min, max) {
 }
 
 function cls() {
-	ctx.fillStyle = '#000000';
+	ctx.fillStyle = 'rgba(0,0,0, 1)';
 	ctx.fillRect(0,0, canvas.width, canvas.height);		
 }
 
@@ -442,6 +442,12 @@ function gameScreen() {
 			const lastX = this.x - this.dx;
 			const lastY = this.y - this.dy;
 
+			//Logic for cloudburst, determining where on ball impact occured
+			console.log(this.x, this.dx, lastX)
+			console.log(this.y, this.dy, lastY)
+			createBurst(this.x, this.y);
+
+
 			//Is the ball above or below the object?
 			if(lastX > object.x - ballRadius && lastX < object.x + object.width + ballRadius) { // margin of error to avoid corner issues
 				//Is the ball above? 
@@ -461,14 +467,14 @@ function gameScreen() {
 
 						if (areaOfCollision > 95) {
 							newAngle =(Math.PI * 5) / 6;
-							console.log("left corner ", newAngle)
+							// console.log("left corner ", newAngle)
 							newSpeed = this.baseSpeed + 4;
 							//left side (set angle and speed)
 						}  else if (areaOfCollision > 5) {
 							newAngle = (Math.PI * (areaOfCollision / 100)) - (Math.PI * 3 / 2);
-							console.log("middle left ", newAngle)
+							// console.log("middle left ", newAngle)
 							newAngle = withinRange(newAngle, -4.5, -2);
-							console.log("ranged ", newAngle)
+							// console.log("ranged ", newAngle)
 							newSpeed = this.baseSpeed + 2;
 							//left middle (variable angle and speed)
 						} else if (areaOfCollision > -5) {
@@ -478,14 +484,14 @@ function gameScreen() {
 						} else if (areaOfCollision > -95) {
 							//right middle (variable angle and speed)
 							newAngle = (Math.PI * (areaOfCollision / -100)) + (Math.PI * 3 / 2);
-							console.log("middle right ", newAngle)
+							// console.log("middle right ", newAngle)
 							newAngle = withinRange(newAngle, 4.8, 6.75);
-							console.log("adjusted ", newAngle)
+							// console.log("adjusted ", newAngle)
 							newSpeed = this.baseSpeed + 2;
 						} else {
 							//rigth side (set angle and speed)
 							newAngle = Math.PI / 6;
-							console.log("right corner ", newAngle)
+							// console.log("right corner ", newAngle)
 							newSpeed = this.baseSpeed + 4;
 						}
 
@@ -538,6 +544,63 @@ function gameScreen() {
 			this.moveY();
 		}
 	}
+
+	//#### SMOKE BURST ####
+	class SmokeParticle  {
+		constructor(x, y, size, color = 'rgba(255,255,255,.3)') {
+			this.x = (Math.random() * 3 - 1) + x;
+			this.y = (Math.random() * 3 - 1) + y;
+			this.size = size;
+			this.dx = Math.random() * 3 - 1.5;
+			this.dy = Math.random() * 3 - 1.5;
+			this.gravity = 0.3;
+			this.color = color;
+			this.life = 15;
+		}
+
+		animate() {
+			this.x += this.dx;
+			this.y += this.dy;
+			this.life--
+		}
+
+		newVel() {
+
+		}
+
+		render() {
+			this.animate();
+			ctx.fillStyle = this.color;
+			ctx.fillRect(this.x, this.y, this.size, this.size);
+		}
+	}
+
+	class CloudBurst {
+		constructor(maxCount, x, y, size) {
+			this.x = x;
+			this.y = y;
+			this.size = size;
+			this.count = 0;
+			this.maxCount = maxCount;
+			this.particles = this.emitBurst();
+		}
+		emitBurst() {
+			let tempArray = [];
+			for(let i = 0; i < this.maxCount; i++) {
+				tempArray.push(new SmokeParticle(this.x, this.y, this.size));		
+			}
+			return tempArray;
+		}
+
+		render() {
+			for(let i = 0; i < this.particles.length; i++) {
+				if(this.particles[i].life){
+					this.particles[i].render();
+				}
+			}		
+		}
+	}
+
 
 	//#### BRICK LOGIC #####
 	function buildBricks(level) {
@@ -595,6 +658,12 @@ function gameScreen() {
 			// SOUND_BOUNCE.play();
 		}
 	}
+
+	function createBurst(x, y){
+		let cb = new CloudBurst(50, x, y, 3);	
+		cb.emitBurst();
+		clouds.push(cb)
+	}	
 
 	function onDeath() {
 		if(playerLives > 0) {
@@ -658,7 +727,9 @@ function gameScreen() {
 			write('Score: ' + playerScore + "   Lives: " + playerLives, 'arial', '10px', 5, 10, 'white')
 			write('Press SPACEBAR to pause', 'arial', '10px', canvasWidth - 5, 10, 'white', "right")
 			detectCollisions();
-
+			for (let i = 0; i < clouds.length; i++){
+				clouds[i].render();
+			}	
 			//CHECK VICTORY CONDITIONS
 			checkLevelWinStatus();
 		}
@@ -667,6 +738,7 @@ function gameScreen() {
 
 	//#### INIT GAME OBJECTS ####
 	currentScreen = 'game';
+	let clouds = []
 	let	paddle = new Paddle(paddleStartX, paddleStartY,  paddleWidth, paddleHeight, paddleColor)
 	let	ball = new Ball(ballStartX, ballStartY,  ballRadius, 0, Math.PI*2, ballColor)
 	const starField = new Starfield(100, 15, 30, "#DDDDDD");
@@ -807,3 +879,6 @@ function gameOverScreen(playerScore) {
 //add audio
 
 //Handle Mouse input correctly
+
+//render stars/bricks/ball/paddle to different canvas' and combine for optimized performance and to allow
+//a trail for the ball
