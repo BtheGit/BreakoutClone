@@ -74,10 +74,12 @@ const LEVELS = [
 	},
 	{
 		board:[
-			[1,0,1,0,1,1,1],
-			[3,1,4,1,1,0,0],
-			[1,2,2,2,3,2,1],
-			[1,2,2,2,3,2,1]
+			[0,0,0,3,0,0,0],
+			[0,0,3,4,3,0,0],
+			[0,0,0,3,0,0,0],
+			[0,2,0,0,0,1,0],
+			[2,3,2,0,1,2,1],
+			[0,2,0,0,0,1,0],
 		],
 		padding: 10,
 		offsetTop: 30,
@@ -572,14 +574,8 @@ function gameScreen() {
 			this.DAMPING = 0.9999;
 		}
 
-		//linear explosion
-		// animate() {
-		// 	// this.x += this.dx;
-		// 	// this.y += this.dy;
-		// 	this.life--
-		// }
 
-		//Optional to slow down particle over time
+		//slow down particle over time
 		newVel() {
 			const velX = this.x - this.prevX;
 			const velY = this.y - this.prevY;
@@ -591,7 +587,6 @@ function gameScreen() {
 		}
 
 		render() {
-			// this.animate();
 			this.newVel();
 			ctx.fillStyle = this.color;
 			ctx.fillRect(this.x, this.y, this.size, this.size);
@@ -766,7 +761,6 @@ function gameScreen() {
 	let	paddle = new Paddle(paddleStartX, paddleStartY,  paddleWidth, paddleHeight, paddleColor)
 	let	ball = new Ball(ballStartX, ballStartY,  ballRadius, 0, Math.PI*2, ballColor)
 	const starField = new Starfield(70, 8, 25, "rgba(255,255,255,.2)");
-	// const starField = new Starfield(100, 15, 30, "#DDDDDD");
 
 	//#### INIT GAME ####
 	buildBricks(LEVELS[currentLevel]);
